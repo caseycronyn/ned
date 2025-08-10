@@ -1035,6 +1035,13 @@ append_lines(int n)
           if (interactive && !isglobal) {
                // pass control over to readline_handler and update state
                l = get_readline_line();
+	       if (l < 0) {
+		    return ERR;
+	       }
+	       else if (l == 0 || ibuf[l - 1] != '\n') {
+		    clearerr(stdin);
+		    return l ? EOF : 0;
+	       }
 	       lp = ibuf;
           }
           else if (!isglobal) {
