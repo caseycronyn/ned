@@ -63,3 +63,7 @@ dkms.conf
 # debug information files
 *.dwo
 >>>>>>> b89930f2b9bf9e81c78350fd242bf94b75ac5038
+
+.history
+read
+deb

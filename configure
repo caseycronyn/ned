@@ -390,12 +390,12 @@ MANDIR =	$mandir
 PROG =	$prog
 OBJS =	buf.o glbl.o io.o main.o re.o sub.o undo.o \\
 	regcomp.o regerror.o regexec.o regfree.o \\
-	reallocarray.o strlcat.o strlcpy.o
+	reallocarray.o strlcat.o strlcpy.o readline.o
 
 all: \${PROG}
 
 \${PROG}: \${OBJS}
-	\${CC} \${LDFLAGS} -o \${PROG} \${OBJS}
+	\${CC} \${LDFLAGS} -o \${PROG} \${OBJS} -I/opt/homebrew/opt/readline/include -L/opt/homebrew/opt/readline/lib
 
 install:
 	install -d \${DESTDIR}\${PREFIX}/bin

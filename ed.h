@@ -33,6 +33,7 @@
 #include <limits.h>
 #include <regex.h>
 #include <signal.h>
+#include <unistd.h>
 
 #define ERR		(-2)
 #define EMOD		(-3)
@@ -178,6 +179,7 @@ char *translit_text(char *, int, int, int);
 void unmark_line_node(line_t *);
 void unset_active_nodes(line_t *, line_t *);
 int write_file(char *, char *, int, int);
+int get_readline_line(void);
 
 /* global buffers */
 extern char *ibuf;

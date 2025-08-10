@@ -257,40 +257,46 @@ get_extended_line(int *sizep, int nonl)
 int
 get_tty_line(void)
 {
-	int oi = 0;
-	int i = 0;
-	int c;
+     int oi = 0;
+     int i = 0;
+     int c;
 
-	for (;;)
-		switch (c = getchar()) {
-		default:
-			oi = 0;
-			REALLOC(ibuf, ibufsz, i + 2, ERR);
-			if (!(ibuf[i++] = c)) isbinary = 1;
-			if (c != '\n')
-				continue;
-			lineno++;
-			ibuf[i] = '\0';
-			ibufp = ibuf;
-			return i;
-		case EOF:
-			if (ferror(stdin)) {
-				perror("stdin");
-				seterrmsg("cannot read stdin");
-				clearerr(stdin);
-				ibufp = NULL;
-				return ERR;
-			} else {
-				clearerr(stdin);
-				if (i != oi) {
-					oi = i;
-					continue;
-				} else if (i)
-					ibuf[i] = '\0';
-				ibufp = ibuf;
-				return i;
-			}
-		}
+     for (;;)
+	  switch (c = getchar()) {
+	  default:
+	       oi = 0;
+	       // resize the buffer
+	       REALLOC(ibuf, ibufsz, i + 2, ERR);
+	       // add each char to the buffer
+	       if (!(ibuf[i++] = c)) isbinary = 1;
+	       // finish at the newline
+	       if (c != '\n')
+		    continue;
+	       // increment line numbers
+	       lineno++;
+	       // add null character to end of the string
+	       ibuf[i] = '\0';
+	       ibufp = ibuf;
+	       // return the line length
+	       return i;
+	  case EOF:
+	       if (ferror(stdin)) {
+		    perror("stdin");
+		    seterrmsg("cannot read stdin");
+		    clearerr(stdin);
+		    ibufp = NULL;
+		    return ERR;
+	       } else {
+		    clearerr(stdin);
+		    if (i != oi) {
+			 oi = i;
+			 continue;
+		    } else if (i)
+			 ibuf[i] = '\0';
+		    ibufp = ibuf;
+		    return i;
+	       }
+	  }
 }
 
 
@@ -305,7 +311,7 @@ extern int cols;
 int
 put_tty_line(char *s, int l, int n, int gflag)
 {
-	int col = 0;
+     int col = 0;
 	char *cp;
 
 	if (gflag & GNP) {

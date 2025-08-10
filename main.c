@@ -1025,48 +1025,54 @@ get_shell_command(void)
 static int
 append_lines(int n)
 {
-	int l;
-	char *lp = ibuf;
-	char *eot;
-	undo_t *up = NULL;
+     int l;
+     char *lp = ibuf;
+     char *eot;
+     undo_t *up = NULL;
 
-	for (current_addr = n;;) {
-		if (!isglobal) {
-			if ((l = get_tty_line()) < 0)
-				return ERR;
-			else if (l == 0 || ibuf[l - 1] != '\n') {
-				clearerr(stdin);
-				return  l ? EOF : 0;
-			}
-			lp = ibuf;
-		} else if (*(lp = ibufp) == '\0')
-			return 0;
-		else {
-			while (*ibufp++ != '\n')
-				;
-			l = ibufp - lp;
-		}
-		if (l == 2 && lp[0] == '.' && lp[1] == '\n') {
-			return 0;
-		}
-		eot = lp + l;
-		SPL1();
-		do {
-			if ((lp = put_sbuf_line(lp)) == NULL) {
-				SPL0();
-				return ERR;
-			} else if (up)
-				up->t = get_addressed_line_node(current_addr);
-			else if ((up = push_undo_stack(UADD, current_addr,
-			    current_addr)) == NULL) {
-				SPL0();
-				return ERR;
-			}
-		} while (lp != eot);
-		modified = 1;
-		SPL0();
-	}
-	/* NOTREACHED */
+     for (current_addr = n;;) {
+	  // I can maybe remove isglobal. this might be redundant
+          if (interactive && !isglobal) {
+               // pass control over to readline_handler and update state
+               l = get_readline_line();
+	       lp = ibuf;
+          }
+          else if (!isglobal) {
+               if ((l = get_tty_line()) < 0)
+                    return ERR;
+               else if (l == 0 || ibuf[l - 1] != '\n') {
+                    clearerr(stdin);
+                    return  l ? EOF : 0;
+               }
+               lp = ibuf;
+          } else if (*(lp = ibufp) == '\0')
+               return 0;
+          else {
+               while (*ibufp++ != '\n')
+                    ;
+               l = ibufp - lp;
+          }
+          if (l == 2 && lp[0] == '.' && lp[1] == '\n') {
+               return 0;
+          }
+          eot = lp + l;
+          SPL1();
+          do {
+               if ((lp = put_sbuf_line(lp)) == NULL) {
+                    SPL0();
+                    return ERR;
+               } else if (up)
+                    up->t = get_addressed_line_node(current_addr);
+               else if ((up = push_undo_stack(UADD, current_addr,
+                                              current_addr)) == NULL) {
+                    SPL0();
+                    return ERR;
+               }
+          } while (lp != eot);
+          modified = 1;
+          SPL0();
+     }
+     /* NOTREACHED */
 }
 
 
