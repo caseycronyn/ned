@@ -1,0 +1,12 @@
+{
+    "jsonrpc": "2.0",
+    "id": null,
+    "method": "textDocument/completion",
+    "params": {
+	"textDocument": { "uri": null },
+	"position": {
+	    "line": null,
+	    "character": null
+	}
+    }
+}
