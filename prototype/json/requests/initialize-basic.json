@@ -5,6 +5,6 @@
     "params": {
 	"processId": null,
 	"rootUri": null,
-        "capabilities": {},
+        "capabilities": {}
     }
 }
