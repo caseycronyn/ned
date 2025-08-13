@@ -1031,17 +1031,8 @@ append_lines(int n)
      undo_t *up = NULL;
 
      for (current_addr = n;;) {
-	  // I can maybe remove isglobal. this might be redundant
-          if (interactive && !isglobal) {
-               // pass control over to readline_handler and update state
+          if (interactive) {
                l = get_readline_line();
-	       if (l < 0) {
-		    return ERR;
-	       }
-	       else if (l == 0 || ibuf[l - 1] != '\n') {
-		    clearerr(stdin);
-		    return l ? EOF : 0;
-	       }
 	       lp = ibuf;
           }
           else if (!isglobal) {
