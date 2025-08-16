@@ -99,6 +99,9 @@ int modified;			/* if set, buffer modified since last write */
 int scripted = 0;		/* if set, suppress diagnostics */
 int interactive = 0;		/* if set, we are in interactive mode */
 
+server ser;
+document doc;
+
 volatile sig_atomic_t mutex = 0;  /* if set, signals set flags */
 volatile sig_atomic_t sighup = 0; /* if set, sighup received while mutex set */
 volatile sig_atomic_t sigint = 0; /* if set, sigint received while mutex set */

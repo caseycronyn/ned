@@ -3,25 +3,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
-#include "../cJSON.h"
+#include "cJSON.h"
+
+#include "ed.h"
 
 // NOTE change the functions so they only pass by reference when they need to.
 // Also need to add proper error handling here
-typedef struct {
-     char *file_name;
-     char *uri;
-     char *language;
-     long version;
-     char *text;
-     long line;
-     long column;
-} document;
-
-typedef struct {
-     long ID;
-     int to_server_fd[2];
-     int to_client_fd[2];
-} server;
 
 void init_file(char *name);
 void update_document_text(void);
@@ -38,10 +25,9 @@ void print_message(char *json);
 void completion(document *doc, server *ser);
 void document_change(document *doc, int *to_server_fildes);
 void document_open(document *doc, int *to_serve_fd);
-void initialize(server *s, char *uri);
+void initialize_lsp(server *s, char *uri);
 cJSON *make_initialize_request(server *s, char *uri);
 cJSON *make_initialized_notification(void);
-void start_server(int to_child[2], int from_child[2]);
 char *get_init_message(char *init_msg);
 cJSON *make_did_open(document *doc);
 cJSON *make_did_change(document *doc);
@@ -49,19 +35,18 @@ cJSON *make_did_close(char *uri);
 cJSON *make_completion_request(document *doc, server *ser);
 cJSON *make_shutdown_request(server *s);
 char *get_uri(char *path);
-char *read_file(char *path);
-void initialize_document(document *d);
+char *read_json_file(char *path);
 
-int main(void) {
-     server ser;
-     ser.ID = 1;
+int main_lsp(void) {
+     // server ser;
      start_server(ser.to_server_fd, ser.to_client_fd);
 
-     document doc;
-     initialize_document(&doc);
+     // document doc;
+     // initialize_document(&doc);
 
-     initialize(&ser, doc.uri);
+     initialize_lsp(&ser, doc.uri);
      document_open(&doc, ser.to_server_fd);
+
      document_change(&doc, ser.to_server_fd);
      completion(&doc, &ser);
      document_close(ser.to_server_fd, doc.uri);
@@ -74,16 +59,17 @@ int main(void) {
      return 0;
 }
 
-void initialize_document(document *doc) {
-     doc->file_name = "test.c";
-     init_file(doc->file_name);
+void initialize_document(document *doc, char *name) {
+     doc->file_name = name;
+     init_file(name);
 
-     char *path = realpath(doc->file_name, NULL);
+     char *path = realpath(name, NULL);
      assert(path);
 
      doc->uri = get_uri(path);
      assert(doc->uri);
 
+     // NOTE will change when new languages are added
      doc->language = "c";
      doc->version = 1;
 
@@ -97,7 +83,7 @@ void halt(server *s) {
 
      char *response = wait_for_response(s->to_client_fd[0]);
      assert(response);
-     print_message(response);
+     // print_message(response);
 
      cJSON *notif_exit = cJSON_CreateObject();
      cJSON_AddStringToObject(notif_exit, "jsonrpc", "2.0");
@@ -117,10 +103,18 @@ void print_message(char *json)
      cJSON_Delete(root);
 }
 
+// read file content into doc.text
 void init_file(char *name) {
-     FILE *fp = fopen(name, "w");
+     FILE *fp = fopen(name, "r");
      assert(fp);
-     fputs("#include <stdio.h>\n\nint main(void) {\n\tprintf(\"hello\");\n\t", fp);
+     fseek(fp, 0, SEEK_END);
+     long n = ftell(fp);
+     rewind(fp);
+     doc.text = malloc(n + 1);
+
+     fread(doc.text, 1, n, fp);
+     doc.text[n] = '\0';
+     // printf("%s", doc.text);
      fclose(fp);
 }
 
@@ -137,7 +131,7 @@ void completion(document *doc, server *ser) {
 
      char *response = wait_for_response(ser->to_client_fd[0]);
      assert(response);
-     print_message(response);
+     // print_message(response);
 }
 
 
@@ -152,14 +146,13 @@ void document_change(document *doc, int *to_server_fildes) {
 
 
 void document_open(document *doc, int *to_serve_fd) {
-     char *initial_text = read_file(doc->file_name);
      cJSON *notif_open = make_did_open(doc);
      send_message(to_serve_fd[1], notif_open);
      cJSON_Delete(notif_open);
-     free(initial_text);
 }
 
 void start_server(int *to_server_fd, int *to_client_fd) {
+     ser.ID = 1;
      pipe(to_server_fd);
      pipe(to_client_fd);
 
@@ -196,14 +189,14 @@ void send_message(int fildes, cJSON *obj) {
      free(body);
 }
 
-void initialize(server *s, char *uri) {
+void initialize_lsp(server *s, char *uri) {
      cJSON *req_initialize = make_initialize_request(s, uri);
      send_message(s->to_server_fd[1], req_initialize);
      cJSON_Delete(req_initialize);
 
      char *response = wait_for_response(s->to_client_fd[0]);
      assert(response);
-     print_message(response);
+     // print_message(response);
      free(response);
 
      cJSON *notif_initialized = make_initialized_notification();
@@ -323,7 +316,7 @@ char *get_uri(char *path) {
      return uri;
 }
 
-char *read_file(char *path) {
+char *read_json_file(char *path) {
      FILE *fp = fopen(path, "r");
      assert(fp);
      fseek(fp, 0, SEEK_END);

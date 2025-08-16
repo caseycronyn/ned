@@ -17,7 +17,7 @@ int done;
 
 char *commands[] = {"cd", "delete", "help", "?", "list", "ls", "pwd", "quit", "rename", "stat", "view", NULL};
 
-int readline_handler(void) {
+int main_readline(void) {
      // tells me what readline version I'm using
      printf("%s\n", rl_library_version);  
 
@@ -80,6 +80,7 @@ void initialize_readline(void) {
 
 char **ed_completion(const char *text, int start, int end) {
      // disable built in autocompletion (filenames)
+     update_document_text();
      rl_attempted_completion_over = 1;
      return rl_completion_matches(text, command_generator);
 }

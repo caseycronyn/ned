@@ -47,25 +47,33 @@ extern int scripted;
 int
 read_file(char *fn, int n)
 {
-	FILE *fp;
-	int size;
+     FILE *fp;
+     int size;
 
 
-	fp = (*fn == '!') ? popen(fn + 1, "r") : fopen(strip_escapes(fn), "r");
-	if (fp == NULL) {
-		perror(fn);
-		seterrmsg("cannot open input file");
-		return ERR;
-	} else if ((size = read_stream(fp, n)) < 0)
-		return ERR;
-	 else if ((*fn == '!') ?  pclose(fp) == -1 : fclose(fp) == EOF) {
-		perror(fn);
-		seterrmsg("cannot close input file");
-		return ERR;
-	}
-	if (!scripted)
-		printf("%d\n", size);
-	return current_addr - n;
+     fp = (*fn == '!') ? popen(fn + 1, "r") : fopen(strip_escapes(fn), "r");
+     if (fp == NULL) {
+	  perror(fn);
+	  seterrmsg("cannot open input file");
+	  return ERR;
+     } else if ((size = read_stream(fp, n)) < 0)
+	  return ERR;
+     else if ((*fn == '!') ?  pclose(fp) == -1 : fclose(fp) == EOF) {
+	  perror(fn);
+	  seterrmsg("cannot close input file");
+	  return ERR;
+     }
+     if (!scripted) {
+	  // NOTE will add logic here to determine the language in the future.
+	  start_server(ser.to_server_fd, ser.to_client_fd);
+	  initialize_document(&doc, fn);
+
+	  initialize_lsp(&ser, doc.uri);
+	  document_open(&doc, ser.to_server_fd);
+
+	  printf("%d\n", size);
+     }
+     return current_addr - n;
 }
 
 
