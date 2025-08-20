@@ -204,7 +204,7 @@ extern document doc;
 extern server ser;
 
 void init_file(char *name);
-void update_document_text(void);
+void update_document(char *cur_line, int cursor_offset);
 void start_server(int *to_server_fd, int *to_client_fd);
 void halt(server *s);
 int get_id(server *s);
@@ -231,7 +231,7 @@ char *get_uri(char *path);
 char *read_json_file(char *path);
 void initialize_document(document *doc, char *file_name);
 
-
+char *get_temp_scratch_buffer(void);
 
 /* global buffers */
 extern char *ibuf;

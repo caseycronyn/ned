@@ -1,3 +1,4 @@
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +12,6 @@
 // Also need to add proper error handling here
 
 void init_file(char *name);
-void update_document_text(void);
 void start_server(int *to_server_fd, int *to_client_fd);
 void halt(server *s);
 int get_id(server *s);
@@ -41,7 +41,7 @@ int main_lsp(void) {
      // server ser;
      start_server(ser.to_server_fd, ser.to_client_fd);
 
-     // document doc;
+     document doc;
      // initialize_document(&doc);
 
      initialize_lsp(&ser, doc.uri);
@@ -137,7 +137,7 @@ void completion(document *doc, server *ser) {
 
 void document_change(document *doc, int *to_server_fildes) {
      // some change happens here
-     update_document_text();
+     // update_document();
      cJSON *notif_change = make_did_change(doc);
      send_message(to_server_fildes[1], notif_change);
      cJSON_Delete(notif_change);
@@ -161,6 +161,10 @@ void start_server(int *to_server_fd, int *to_client_fd) {
 	  // set read and write to stdin and stdout
 	  dup2(to_server_fd[0], 0);
 	  dup2(to_client_fd[1], 1);
+
+	  // send output to log file to avoid clogging up the tty
+	  int log_fd = open(".log", O_WRONLY|O_CREAT|O_TRUNC, 0644);
+	  dup2(log_fd, 2);
 
 	  close(to_server_fd[0]);
 	  close(to_server_fd[1]);
@@ -338,11 +342,6 @@ int get_version(document *d) {
      return d->version++;
 }
 
-// TODO
-void update_document_text(void) {
-     ;
-     // placeholder function... go find changes to text document and update the document struct
-}
 
 
 cJSON *make_initialize_request(server *s, char *uri) {
@@ -385,7 +384,7 @@ cJSON *make_did_open(document *doc) {
 }
 
 cJSON *make_did_change(document *doc) {
-     update_document_text();
+     // update_document();
 
      cJSON *n = cJSON_CreateObject();
      cJSON_AddStringToObject(n, "jsonrpc", "2.0");
