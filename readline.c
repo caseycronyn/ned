@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <assert.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,11 +9,11 @@
 
 #include "ed.h"
 
-char *add_readline_line(char *sb, char *new_line);
 bool is_terminator(char *line);
 void initialize_readline(void);
 char *command_generator(const char *, int);
 char **ed_completion(const char *, int, int);
+char *add_readline_line(const char *sb, const char *new_line);
 
 int done;
 extern int newline_added;
@@ -113,13 +114,12 @@ bool is_terminator(char *line) {
      return ((strlen(line) == 1) && line[0] == '.');
 }
 
-// TODO
-// Here I want to maintain a 'complete context' for the lsp. This means the full context of the buffer + the current line
 void update_document(char *cur_line, int cursor_offset) {
      char *scratch_buf = get_temp_scratch_buffer();
-     printf("%s", add_readline_line(scratch_buf, cur_line));
-
-     // placeholder function... go find changes to text document and update the document struct
+     doc.text = add_readline_line(scratch_buf, cur_line);
+     doc.line = current_addr;
+     doc.column = cursor_offset;
+     new_version(&doc);
 }
 
 // modified version of display_lines()
@@ -153,32 +153,47 @@ char *get_temp_scratch_buffer(void) {
 	return buffer;
 }
 
-char *add_readline_line(char *sb, char *new_line) {
-     ssize_t read;
-     char * line;
-     char buf_sz = strlen(sb);
-     char newln_sz = strlen(new_line);
-     char *new_str = malloc(buf_sz + newln_sz + 1);
-     FILE *fp = fmemopen(sb, buf_sz, "r");
+char *add_readline_line(const char *sb, const char *new_line) {
+    if (!sb || !new_line) {
+	 return NULL;
+    }
 
-     bool added = false;
-     bool added_pass = false;
-     int i = 0;
-     int line_num = 1;
-     while (fgets(line, buf_sz, fp) != NULL) {
-	  if (!added && current_addr == line_num) {
-	       added = true;
-	       added_pass = true;
-	       line = new_line;
-	  }
-	  new_str[i] = *line;
-	  new_str[strlen(line) + 1] = '\n';
-	  i += strlen(line) + 1;
-	  if (added_pass) {
-	       added_pass = false;
-	       i-= strlen(line) + 1;
-	  }
-     }
-     fclose(fp);
-     return new_str;
+    size_t scratch_length = strlen(sb);
+    size_t newline_length = strlen(new_line);
+
+    size_t offset = 0;
+    int line_no = 1;
+    while (line_no < current_addr && offset < scratch_length) {
+        if (sb[offset] == '\n') {
+            line_no++;
+        }
+        offset++;
+    }
+
+    bool newline_ending = (newline_length > 0 && new_line[newline_length - 1] == '\n');
+    size_t insert_length = newline_length;
+    if (!newline_ending) {
+	 insert_length++;
+    }
+    char *result = malloc(scratch_length + insert_length + 1);
+    assert(result);
+
+    // up to the added line
+    memcpy(result, sb, offset);
+
+    // added line
+    char *newline_dst = result + offset;
+    memcpy(newline_dst, new_line, newline_length);
+    if (!newline_ending) {
+        result[offset + newline_length] = '\n';
+    }
+
+    // rest of the buffer
+    char *end_dst = result + offset + insert_length;
+    const char *end_src = sb + offset;
+    size_t end_len = scratch_length - offset;
+    memcpy(end_dst, end_src, end_len);
+
+    result[scratch_length + insert_length] = '\0';
+    return result;
 }

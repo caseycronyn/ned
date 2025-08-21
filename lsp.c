@@ -338,7 +338,7 @@ int get_id(server *s) {
      return s->ID++;
 }
 
-int get_version(document *d) {
+int new_version(document *d) {
      return d->version++;
 }
 
