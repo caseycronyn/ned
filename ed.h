@@ -180,7 +180,8 @@ char *translit_text(char *, int, int, int);
 void unmark_line_node(line_t *);
 void unset_active_nodes(line_t *, line_t *);
 int write_file(char *, char *, int, int);
-int get_readline_line(void);
+
+unsigned long get_readline_line(void);
 
 // NOTE lsp headers. remove if and when needed
 typedef struct {
@@ -199,6 +200,12 @@ typedef struct {
      int to_client_fd[2];
 } server;
 
+typedef struct {
+     char ** completion_items;
+     int completion_count;
+     
+} completion_response;
+
 // structs
 extern document doc;
 extern server ser;
@@ -210,12 +217,10 @@ void halt(server *s);
 int get_id(server *s);
 void send_message(int fd, cJSON *msg);
 char *wait_for_response(int fd);
-ssize_t read_content(int fildes, char *buf, size_t n);
 char *read_headers(int fildes);
 long parse_content_length(char *headers);
 void document_close(int to_server_fd[2], char *uri);
 void print_message(char *json);
-void completion(document *doc, server *ser);
 void document_change(document *doc, int *to_server_fildes);
 void document_open(document *doc, int *to_serve_fd);
 void initialize_lsp(server *s, char *uri);
@@ -232,6 +237,7 @@ char *read_json_file(char *path);
 void initialize_document(document *doc, char *file_name);
 int new_version(document *d);
 char *get_temp_scratch_buffer(void);
+completion_response completion(document *doc, server *ser);
 
 /* global buffers */
 extern char *ibuf;

@@ -24,7 +24,7 @@ char *read_headers(int fildes);
 long parse_content_length(char *headers);
 void document_close(int to_server_fd[2], char *uri);
 void print_message(char *json);
-void completion(document *doc, server *ser);
+completion_response get_completion_items(char *response);
 void document_change(document *doc, int *to_server_fildes);
 void document_open(document *doc, int *to_serve_fd);
 void initialize_lsp(server *s, char *uri);
@@ -92,6 +92,7 @@ void write_all(int fd, void *buf, size_t n) {
     }
 }
 
+// writes messages to log file
 void trace_write(char *dir, char *headers, char *body, size_t body_len) {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
@@ -163,7 +164,8 @@ void document_close(int to_server_fd[2], char *uri) {
      cJSON_Delete(notif_close);
 }
 
-void completion(document *doc, server *ser) {
+// returns the completion response
+completion_response completion(document *doc, server *ser) {
      cJSON *req_completion = make_completion_request(doc, ser);
      send_message(ser->to_server_fd[1], req_completion);
      cJSON_Delete(req_completion);
@@ -171,8 +173,36 @@ void completion(document *doc, server *ser) {
      char *response = wait_for_response(ser->to_client_fd[0]);
      assert(response);
      // print_message(response);
+     return get_completion_items(response);
 }
 
+// returns a 2d array of completion items from the language server
+completion_response get_completion_items(char *response) {
+     cJSON *obj = cJSON_Parse(response);
+     cJSON *result = cJSON_GetObjectItem(obj, "result");
+     cJSON *items = cJSON_GetObjectItem(result, "items");
+
+     completion_response resp;
+     int arr_length = cJSON_GetArraySize(items);
+     resp.completion_items = malloc(arr_length * sizeof(char *));
+
+     cJSON *iterator = NULL;
+     int i = 0;
+     cJSON_ArrayForEach(iterator, items) {
+	  cJSON *textEdit = cJSON_GetObjectItem(iterator, "textEdit");
+	  cJSON *newText = cJSON_GetObjectItem(textEdit, "newText");
+
+	  char *item = newText->valuestring;
+	  int length = strlen(item);
+
+	  resp.completion_items[i] = malloc(length + 1);
+	  strlcpy(resp.completion_items[i], item, length + 1);
+	  i++;
+     }
+     resp.completion_count = i;
+     cJSON_Delete(obj);
+     return resp;
+}
 
 void document_change(document *doc, int *to_server_fildes) {
      // some change happens here
@@ -255,8 +285,9 @@ void initialize_lsp(server *s, char *uri) {
 
 }
 
-char *wait_for_response(int fildes) {
-     char *headers = read_headers(fildes);
+// waits for a response then returns the body of the response
+char *wait_for_response(int to_client_fd_read) {
+     char *headers = read_headers(to_client_fd_read);
      assert(headers);
 
      long body_len = parse_content_length(headers);
@@ -265,7 +296,7 @@ char *wait_for_response(int fildes) {
      char *buffer = malloc(body_len + 1);
      assert(buffer);
 
-     size_t n = read_content(fildes, buffer, body_len);
+     size_t n = read_content(to_client_fd_read, buffer, body_len);
      assert(n == body_len);
      buffer[body_len] = '\0';
 
