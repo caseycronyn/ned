@@ -36,7 +36,7 @@ long parse_content_length(char *headers);
 void document_close(int to_server_fd[2], char *uri);
 void print_message(char *json);
 void completion(document *doc, server *ser);
-void document_change(document *doc, int *to_server_fildes);
+void document_change(document *d, int *to_server_fildes);
 void document_open(document *doc, int *to_serve_fd);
 void initialize(server *s, char *uri);
 cJSON *make_initialize_request(server *s, char *uri);
@@ -141,10 +141,10 @@ void completion(document *doc, server *ser) {
 }
 
 
-void document_change(document *doc, int *to_server_fildes) {
+void document_change(document *d, int *to_server_fildes) {
      // some change happens here
      update_document_text();
-     cJSON *notif_change = make_did_change(doc);
+     cJSON *notif_change = make_did_change(d);
      send_message(to_server_fildes[1], notif_change);
      cJSON_Delete(notif_change);
 

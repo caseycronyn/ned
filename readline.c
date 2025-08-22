@@ -124,7 +124,7 @@ char *command_generator(const char *text, int state) {
     // first pass
     if (!state) {
         list_index = 0;
-        len = strlen(text);
+        len = (int)strlen(text);
     }
 
     while (list_index < completion_count) {

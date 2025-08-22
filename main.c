@@ -1028,7 +1028,7 @@ get_shell_command(void)
 static int
 append_lines(int n)
 {
-     int l;
+     unsigned long l;
      char *lp = ibuf;
      char *eot;
      undo_t *up = NULL;
