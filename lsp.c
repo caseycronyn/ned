@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,6 +6,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include "cJSON.h"
+#include <time.h>
 
 #include "ed.h"
 
@@ -36,6 +38,8 @@ cJSON *make_completion_request(document *doc, server *ser);
 cJSON *make_shutdown_request(server *s);
 char *get_uri(char *path);
 char *read_json_file(char *path);
+
+int trace_fd = -1;
 
 int main_lsp(void) {
      // server ser;
@@ -76,6 +80,40 @@ void initialize_document(document *doc, char *name) {
      free(path);
 }
 
+void write_all(int fd, void *buf, size_t n) {
+    char *p = buf;
+    while (n > 0) {
+        ssize_t w = write(fd, p, n);
+        if (w <= 0) {
+	     return;
+	}
+        p += w;
+        n -= w;
+    }
+}
+
+void trace_write(char *dir, char *headers, char *body, size_t body_len) {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+
+    char timebuf[64];
+    struct tm tm;
+    localtime_r(&ts.tv_sec, &tm);
+    strftime(timebuf, sizeof(timebuf), "%H:%M:%S", &tm);
+
+    char prefix[128];
+    int msec = (int)(ts.tv_nsec / 1000000);
+    int k = snprintf(prefix, sizeof(prefix), "---------------------------- %s.%03d %s -----------------------------\n", timebuf, msec, dir);
+
+    write_all(trace_fd, prefix, k);
+    write_all(trace_fd, headers, strlen(headers));
+
+    cJSON *obj_body = cJSON_Parse(body);
+    char *formatted_json = cJSON_Print(obj_body);
+    write_all(trace_fd, formatted_json, strlen(formatted_json));
+    write_all(trace_fd, "\n\n", 2);
+}
+
 void halt(server *s) {
      cJSON *req_shutdown = make_shutdown_request(s);
      send_message(s->to_server_fd[1], req_shutdown);
@@ -90,13 +128,14 @@ void halt(server *s) {
      cJSON_AddStringToObject(notif_exit, "method", "exit");
      send_message(s->to_server_fd[1], notif_exit);
      cJSON_Delete(notif_exit);
+     close(trace_fd);
 }
 
 void print_message(char *json)
 {
      cJSON *root = cJSON_Parse(json);
      assert(root);
-     char *pretty = cJSON_Print(root); // indented output
+     char *pretty = cJSON_Print(root);
      assert(pretty);
      printf("%s\n", pretty);
      free(pretty);
@@ -156,6 +195,8 @@ void start_server(int *to_server_fd, int *to_client_fd) {
      pipe(to_server_fd);
      pipe(to_client_fd);
 
+     trace_fd = open(".messages.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+
      // child process (server)
      if (!fork()) {
 	  // set read and write to stdin and stdout
@@ -163,7 +204,10 @@ void start_server(int *to_server_fd, int *to_client_fd) {
 	  dup2(to_client_fd[1], 1);
 
 	  // send output to log file to avoid clogging up the tty
-	  int log_fd = open(".log", O_WRONLY|O_CREAT|O_TRUNC, 0644);
+	  int log_fd = open(".clang.log", O_WRONLY|O_CREAT|O_TRUNC, 0644);
+	  if (log_fd < 0) {
+	       exit(EXIT_FAILURE);
+	  }
 	  dup2(log_fd, 2);
 
 	  close(to_server_fd[0]);
@@ -186,6 +230,8 @@ void send_message(int fildes, cJSON *obj) {
 
      char header[128];
      int header_len = snprintf(header, sizeof(header), "Content-Length: %zu\r\n\r\n", length);
+
+     trace_write("-> client", header, body, length);
 
      // write header then body
      write(fildes, header, header_len);
@@ -222,6 +268,8 @@ char *wait_for_response(int fildes) {
      size_t n = read_content(fildes, buffer, body_len);
      assert(n == body_len);
      buffer[body_len] = '\0';
+
+     trace_write("<- server", headers, buffer, (size_t)body_len);
 
      free(headers);
      return buffer;

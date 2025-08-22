@@ -86,6 +86,8 @@ char **ed_completion(const char *text, int start, int end) {
      // printf("text: %s\n", rl_line_buffer);
      // printf("cursor position: %d\n", rl_point);
      update_document(rl_line_buffer, rl_point);
+     document_change(&doc, ser.to_server_fd);
+     completion(&doc, &ser);
      rl_attempted_completion_over = 1;
      return rl_completion_matches(text, command_generator);
 }
@@ -120,6 +122,7 @@ void update_document(char *cur_line, int cursor_offset) {
      doc.line = current_addr;
      doc.column = cursor_offset;
      new_version(&doc);
+     // printf("%s", doc.text);
 }
 
 // modified version of display_lines()

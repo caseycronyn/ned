@@ -231,7 +231,6 @@ char *get_uri(char *path);
 char *read_json_file(char *path);
 void initialize_document(document *doc, char *file_name);
 int new_version(document *d);
-
 char *get_temp_scratch_buffer(void);
 
 /* global buffers */
