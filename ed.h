@@ -216,7 +216,7 @@ void start_server(int *to_server_fd, int *to_client_fd);
 void halt(server *s);
 int get_id(server *s);
 void send_message(int fd, cJSON *msg);
-char *wait_for_response(int to_client_fd_read, long id);
+char *wait_for_response(int to_client_fd_read, long target_id);
 char *read_headers(int fildes);
 long parse_content_length(char *headers);
 void document_close(int to_server_fd[2], char *uri);

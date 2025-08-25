@@ -90,6 +90,12 @@ static int get_marked_node_addr(int);
 
 static line_t *dup_line_node(line_t *);
 
+int bat_print(int from, int to, int gflag);
+
+int l_print(int from, int to, int gflag);
+
+char *make_bat_buffer(line_t *bp, line_t *ep, char *s);
+
 sigjmp_buf env;
 
 /* static buffers */
@@ -1227,29 +1233,93 @@ delete_lines(int from, int to) {
      return 0;
 }
 
-
-/* display_lines: print a range of lines to stdout */
+/* display_lines: print a range of lines to stdout using bat for syntax highlighting */
 int
 display_lines(int from, int to, int gflag) {
-     line_t *bp;
-     line_t *ep;
-     char *s;
+    if (!from) {
+        seterrmsg("invalid address");
+        return ERR;
+    }
+    // l flag, use put_tty_line
+    if (gflag & GLS) {
+	 return l_print(from, to, gflag);
+    }
 
-     if (!from) {
-          seterrmsg("invalid address");
-          return ERR;
-     }
-     ep = get_addressed_line_node(INC_MOD(to, addr_last));
-     bp = get_addressed_line_node(from);
-     for (; bp != ep; bp = bp->q_forw) {
-          if ((s = get_sbuf_line(bp)) == NULL)
-               return ERR;
-          if (put_tty_line(s, bp->len, current_addr = from++, gflag) < 0)
-               return ERR;
-     }
-     return 0;
+    // else call bat_print for p and n
+    return bat_print(from, to, gflag);
 }
 
+int l_print(int from, int to, int gflag) {
+    line_t *bp;
+    line_t *ep;
+    char *s;
+
+     ep = get_addressed_line_node(INC_MOD(to, addr_last));
+        bp = get_addressed_line_node(from);
+        for (; bp != ep; bp = bp->q_forw) {
+            if ((s = get_sbuf_line(bp)) == NULL)
+                return ERR;
+            if (put_tty_line(s, bp->len, current_addr = from++, gflag) < 0)
+                return ERR;
+        }
+        return 0;
+
+}
+
+int bat_print(int from, int to, int gflag) {
+    line_t *bp = NULL;
+    line_t *ep = NULL;
+    char *s = NULL;
+
+    char *tmp = make_bat_buffer(bp, ep, s);
+
+    char command[512];
+    sprintf(command, "bat --color=always --style=plain --paging=never --language %s --line-range %d:%d %s",
+	    doc.language, from, to, tmp);
+
+    FILE *bat_process = popen(command, "r");
+    if (!bat_process) {
+	 return ERR;
+    }
+
+    char *line = NULL;
+    size_t cap = 0;
+    ssize_t nread;
+    int ln = from;
+
+    while ((nread = getline(&line, &cap, bat_process)) != -1) {
+	 // line number + tab
+	 if (gflag & GNP)
+	      fprintf(stdout, "%d\t", ln);
+	 if (fwrite(line, 1, (size_t)nread, stdout) != nread) {
+	      pclose(bat_process);
+	      return ERR;
+	 }
+	 current_addr = ln++;
+    }
+    pclose(bat_process);
+    free(tmp);
+    return 0;
+}
+
+char *make_bat_buffer(line_t *bp, line_t *ep, char *s) {
+     char tmp[] = "/tmp/ed-highlighted.XXXXXX";
+     int fd = mkstemp(tmp);
+     if (fd == -1) {
+	  return NULL;
+     }
+
+     bp = get_addressed_line_node(1);
+     ep = get_addressed_line_node(INC_MOD(addr_last, addr_last));
+     for (line_t *lp = bp; lp != ep; lp = lp->q_forw) {
+	  if ((s = get_sbuf_line(lp)) == NULL) {
+	       return NULL;
+	  }
+	  write(fd, s, lp->len);
+	  write(fd, "\n", 1);
+     }
+     return strdup(tmp);
+}
 
 #define MAXMARK 26			/* max number of marks */
 

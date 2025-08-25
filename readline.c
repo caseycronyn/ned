@@ -10,21 +10,14 @@
 #include "ed.h"
 
 bool is_terminator(char *line);
-
 void initialize_readline(void);
-
 char *command_generator(const char *, int);
-
 char **ed_completion(const char *, int, int);
-
 char *add_readline_line(const char *sb, const char *new_line);
-
 void free_candidates(void);
 
 int done;
 extern int newline_added;
-
-// char *commands[] = {"cd",  "delete", "help",   "?",    "list", "ls", "pwd", "quit",   "rename", "stat", "view", NULL};
 
 char **completion_candidates = NULL;
 int completion_count = 0;
