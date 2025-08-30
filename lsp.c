@@ -1,4 +1,3 @@
-#include <stdbool.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -11,79 +10,30 @@
 
 #include "ed.h"
 
-// NOTE change the functions so they only pass by reference when they need to.
-// Also need to add proper error handling here
-
-void init_file(char *name);
-
+void init_file(const char *name);
 void start_server(int *to_server_fd, int *to_client_fd);
-
-void halt(server *s);
-
-void send_message(int fd, cJSON *msg);
-
-
+void halt(const server *s);
+void send_message(int fd, const cJSON *msg);
 ssize_t read_content(int fildes, char *buf, size_t n);
-
 char *read_headers(int fildes);
-
 long parse_content_length(char *headers);
-
-void document_close(int to_server_fd[2], char *uri);
-
-void print_message(char *json);
-
-completion_response get_completion_items(char *response);
-
-void document_change(document *d, const int *to_server_fildes);
-
-void document_open(document *d, const int *to_serve_fd);
-
-void initialize_lsp(server *s, char *uri);
-
-cJSON *make_initialize_request(server *s, char *uri);
-
+void document_close(int to_server_fd[2], const char *uri);
+void print_message(const char *json);
+completion_response get_completion_items(const char *response);
+void document_change(const document *d, const int *to_server_fildes);
+void document_open(const document *d, const int *to_serve_fd);
+void initialize_lsp(const server *s, const char *uri);
+cJSON *make_initialize_request(const server *s, const char *uri);
 cJSON *make_initialized_notification(void);
-
 char *get_init_message(char *init_msg);
-
 cJSON *make_did_open(const document *d);
-
 cJSON *make_did_change(const document *d);
-
 cJSON *make_did_close(const char *uri);
-
-cJSON *make_completion_request(const document *d, server *s);
-
-cJSON *make_shutdown_request(server *s);
-
+cJSON *make_completion_request(const document *d, const server *s);
+cJSON *make_shutdown_request(const server *s);
 char *get_uri(char *path);
-
 char *read_json_file(const char *path);
-
 int trace_fd = -1;
-
-int main_lsp(void) {
-     // server ser;
-     start_server(ser.to_server_fd, ser.to_client_fd);
-
-     // document doc;
-     // initialize_document(&doc);
-
-     initialize_lsp(&ser, doc.uri);
-     document_open(&doc, ser.to_server_fd);
-
-     document_change(&doc, ser.to_server_fd);
-     // completion(&doc, &ser);
-     document_close(ser.to_server_fd, doc.uri);
-     halt(&ser);
-
-     free(doc.uri);
-     close(ser.to_server_fd[1]);
-     close(ser.to_client_fd[0]);
-     wait(NULL);
-     return 0;
-}
 
 void initialize_document(document *d, char *name) {
      d->file_name = name;
@@ -114,7 +64,6 @@ void write_all(int fd, void *buf, size_t n) {
      }
 }
 
-// writes messages to log file
 void trace_write(char *dir, char *headers, char *body, size_t body_len) {
      struct timespec ts;
      clock_gettime(CLOCK_REALTIME, &ts);
@@ -125,23 +74,27 @@ void trace_write(char *dir, char *headers, char *body, size_t body_len) {
      strftime(timebuf, sizeof(timebuf), "%H:%M:%S", &tm);
 
      char prefix[128];
-     const int msec = (int) (ts.tv_nsec / 1000000);
+     const int msec = (int)(ts.tv_nsec / 1000000);
      const int k = snprintf(prefix, sizeof(prefix),
-                            "----------------------- %s.%03d %s -----------------------------\n",
-                            timebuf, msec, dir);
+			    "----------------------- %s.%03d %s -----------------------------\n",
+			    timebuf, msec, dir);
 
-     write_all(trace_fd, prefix, k);
+     write_all(trace_fd, prefix, (size_t)k);
      write_all(trace_fd, headers, strlen(headers));
 
      cJSON *obj_body = cJSON_Parse(body);
-     char *formatted_json = cJSON_Print(obj_body);
-     write_all(trace_fd, formatted_json, strlen(formatted_json));
+     if (obj_body) {
+	  char *formatted_json = cJSON_Print(obj_body);
+	  write_all(trace_fd, formatted_json, strlen(formatted_json));
+	  free(formatted_json);
+	  cJSON_Delete(obj_body);
+     } else {
+	  write_all(trace_fd, body, body_len);
+     }
      write_all(trace_fd, "\n\n", 2);
-     cJSON_Delete(obj_body);
-     free(formatted_json);
 }
 
-void halt(server *s) {
+void halt(const server *s) {
      cJSON *req_shutdown = make_shutdown_request(s);
      send_message(s->to_server_fd[1], req_shutdown);
      cJSON_Delete(req_shutdown);
@@ -162,7 +115,7 @@ void halt(server *s) {
      free(response);
 }
 
-void print_message(char *json) {
+void print_message(const char *json) {
      cJSON *root = cJSON_Parse(json);
      assert(root);
      char *pretty = cJSON_Print(root);
@@ -173,7 +126,7 @@ void print_message(char *json) {
 }
 
 // read file content into doc.text
-void init_file(char *name) {
+void init_file(const char *name) {
      FILE *fp = fopen(name, "r");
      assert(fp);
      fseek(fp, 0, SEEK_END);
@@ -187,14 +140,14 @@ void init_file(char *name) {
      fclose(fp);
 }
 
-void document_close(int to_server_fd[2], char *uri) {
+void document_close(int to_server_fd[2], const char *uri) {
      cJSON *notif_close = make_did_close(uri);
      send_message(to_server_fd[1], notif_close);
      cJSON_Delete(notif_close);
 }
 
 // returns the completion response
-completion_response completion(document *d, server *s) {
+completion_response completion(const document *d, const server *s) {
      cJSON *req_completion = make_completion_request(d, s);
      send_message(s->to_server_fd[1], req_completion);
      cJSON_Delete(req_completion);
@@ -206,7 +159,7 @@ completion_response completion(document *d, server *s) {
 }
 
 // returns a 2d array of completion items from the language server
-completion_response get_completion_items(char *response) {
+completion_response get_completion_items(const char *response) {
      cJSON *obj = cJSON_Parse(response);
 
      cJSON *result = cJSON_GetObjectItem(obj, "result");
@@ -234,7 +187,7 @@ completion_response get_completion_items(char *response) {
      return resp;
 }
 
-void document_change(document *d, const int *to_server_fildes) {
+void document_change(const document *d, const int *to_server_fildes) {
      // some change happens here
      // update_document();
      cJSON *notif_change = make_did_change(d);
@@ -243,7 +196,7 @@ void document_change(document *d, const int *to_server_fildes) {
 }
 
 
-void document_open(document *d, const int *to_serve_fd) {
+void document_open(const document *d, const int *to_serve_fd) {
      cJSON *notif_open = make_did_open(d);
      send_message(to_serve_fd[1], notif_open);
      cJSON_Delete(notif_open);
@@ -285,7 +238,7 @@ void start_server(int *to_server_fd, int *to_client_fd) {
      close(to_client_fd[1]);
 }
 
-void send_message(int fildes, cJSON *obj) {
+void send_message(int fildes, const cJSON *obj) {
      char *body = cJSON_PrintUnformatted(obj);
      assert(body);
      size_t length = strlen(body);
@@ -301,7 +254,7 @@ void send_message(int fildes, cJSON *obj) {
      free(body);
 }
 
-void initialize_lsp(server *s, char *uri) {
+void initialize_lsp(const server *s, const char *uri) {
      cJSON *req_initialize = make_initialize_request(s, uri);
      send_message(s->to_server_fd[1], req_initialize);
      cJSON_Delete(req_initialize);
@@ -322,38 +275,41 @@ void initialize_lsp(server *s, char *uri) {
 char *wait_for_response(int to_client_fd_read, long target_id) {
      char *headers = NULL;
      char *body = NULL;
-     bool success = false;
 
-     while (1) {
+     for (;;) {
 	  headers = read_headers(to_client_fd_read);
 	  if (!headers) {
 	       return NULL;
 	  }
 
 	  long body_len = parse_content_length(headers);
-	  if (body_len >= 0) {
-	       body = malloc(body_len + 1);
-	       if (body) {
-		    size_t n = read_content(to_client_fd_read, body, body_len);
-		    if (n == body_len) {
-			 body[body_len] = '\0';
 
-			 trace_write("<- server", headers, body, (size_t) body_len);
-			 success = true;
-		    }
-	       }
+	  body = malloc((size_t)body_len + 1);
+	  if (!body) {
+	       free(headers);
+	       return NULL;
 	  }
+
+	  size_t n = read_content(to_client_fd_read, body, (size_t)body_len);
+	  if (n != (size_t)body_len) {
+	       free(headers);
+	       free(body);
+	       body = NULL;
+	       continue;
+	  }
+
+	  body[body_len] = '\0';
+	  trace_write("<- server", headers, body, (size_t)body_len);
 	  free(headers);
+
 	  // check ID
 	  cJSON *json = cJSON_Parse(body);
-	  if (json) {
-	       cJSON *id = cJSON_GetObjectItem(json, "id");
-	       if (id && id->valueint == target_id) {
-		    cJSON_Delete(json);
-		    return body;
-	       }
+	  cJSON *id = cJSON_GetObjectItem(json, "id");
+	  if (id && id->type == cJSON_Number && id->valuedouble == (double)target_id) {
 	       cJSON_Delete(json);
+	       return body;
 	  }
+	  cJSON_Delete(json);
      }
 }
 
@@ -403,8 +359,8 @@ long parse_content_length(char *headers) {
      }
 
      return
-               -
-               1;
+	  -
+	  1;
 }
 
 char *read_headers(int fildes) {
@@ -448,7 +404,7 @@ char *read_headers(int fildes) {
      return buffer;
 }
 
-cJSON *make_initialize_request(server *s, char *uri) {
+cJSON *make_initialize_request(const server *s, const char *uri) {
      cJSON *req = cJSON_CreateObject();
      cJSON_AddStringToObject(req, "jsonrpc", "2.0");
      cJSON_AddNumberToObject(req, "id", s->ID);
@@ -526,7 +482,7 @@ cJSON *make_did_close(const char *uri) {
      return close;
 }
 
-cJSON *make_completion_request(const document *d, server *s) {
+cJSON *make_completion_request(const document *d, const server *s) {
      cJSON *req = cJSON_CreateObject();
      cJSON_AddStringToObject(req, "jsonrpc", "2.0");
      cJSON_AddNumberToObject(req, "id", s->ID);
@@ -547,7 +503,7 @@ cJSON *make_completion_request(const document *d, server *s) {
      return req;
 }
 
-cJSON *make_shutdown_request(server *s) {
+cJSON *make_shutdown_request(const server *s) {
      cJSON *req = cJSON_CreateObject();
      cJSON_AddStringToObject(req, "jsonrpc", "2.0");
      cJSON_AddNumberToObject(req, "id", s->ID);

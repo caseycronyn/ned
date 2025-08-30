@@ -94,7 +94,7 @@ int bat_print(int from, int to, int gflag);
 
 int l_print(int from, int to, int gflag);
 
-char *make_bat_buffer(line_t *bp, line_t *ep, char *s);
+char *make_bat_buffer(line_t *bp, const line_t *ep, const char *s);
 
 sigjmp_buf env;
 
@@ -1250,12 +1250,10 @@ display_lines(int from, int to, int gflag) {
 }
 
 int l_print(int from, int to, int gflag) {
-    line_t *bp;
-    line_t *ep;
-    char *s;
+     char *s;
 
-     ep = get_addressed_line_node(INC_MOD(to, addr_last));
-        bp = get_addressed_line_node(from);
+     const line_t *ep = get_addressed_line_node(INC_MOD(to, addr_last));
+     line_t *bp = get_addressed_line_node(from);
         for (; bp != ep; bp = bp->q_forw) {
             if ((s = get_sbuf_line(bp)) == NULL)
                 return ERR;
@@ -1302,9 +1300,9 @@ int bat_print(int from, int to, int gflag) {
     return 0;
 }
 
-char *make_bat_buffer(line_t *bp, line_t *ep, char *s) {
+char *make_bat_buffer(line_t *bp, const line_t *ep, const char *s) {
      char tmp[] = "/tmp/ed-highlighted.XXXXXX";
-     int fd = mkstemp(tmp);
+     const int fd = mkstemp(tmp);
      if (fd == -1) {
 	  return NULL;
      }

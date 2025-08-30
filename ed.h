@@ -210,34 +210,34 @@ typedef struct {
 extern document doc;
 extern server ser;
 
-void init_file(char *name);
-void update_document(char *cur_line, int cursor_offset);
+void init_file(const char *name);
+void update_document(const char *cur_line, int cursor_offset);
 void start_server(int *to_server_fd, int *to_client_fd);
-void halt(server *s);
+void halt(const server *s);
 int get_id(server *s);
-void send_message(int fd, cJSON *msg);
+void send_message(int fd, const cJSON *msg);
 char *wait_for_response(int to_client_fd_read, long target_id);
 char *read_headers(int fildes);
 long parse_content_length(char *headers);
-void document_close(int to_server_fd[2], char *uri);
-void print_message(char *json);
-void document_change(document *d, const int *to_server_fildes);
-void document_open(document *d, const int *to_serve_fd);
-void initialize_lsp(server *s, char *uri);
-cJSON *make_initialize_request(server *s, char *uri);
+void document_close(int to_server_fd[2], const char *uri);
+void print_message(const char *json);
+void document_change(const document *d, const int *to_server_fildes);
+void document_open(const document *d, const int *to_serve_fd);
+void initialize_lsp(const server *s, const char *uri);
+cJSON *make_initialize_request(const server *s, const char *uri);
 cJSON *make_initialized_notification(void);
 char *get_init_message(char *init_msg);
 cJSON *make_did_open(const document *d);
 cJSON *make_did_change(const document *d);
 cJSON *make_did_close(const char *uri);
-cJSON *make_completion_request(const document *d, server *s);
-cJSON *make_shutdown_request(server *s);
+cJSON *make_completion_request(const document *d, const server *s);
+cJSON *make_shutdown_request(const server *s);
 char *get_uri(char *path);
 char *read_json_file(const char *path);
 void initialize_document(document *d, char *file_name);
 int new_version(document *d);
 char *get_temp_scratch_buffer(void);
-completion_response completion(document *d, server *s);
+completion_response completion(const document *d, const server *s);
 
 /* global buffers */
 extern char *ibuf;

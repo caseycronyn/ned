@@ -9,7 +9,7 @@
 
 #include "ed.h"
 
-bool is_terminator(char *line);
+bool is_terminator(const char *line);
 void initialize_readline(void);
 char *command_generator(const char *, int);
 char **ed_completion(const char *, int, int);
@@ -34,45 +34,11 @@ void free_candidates(void) {
      completion_count = 0;
 }
 
-int main_readline(void) {
-     // tells me what readline version I'm using
-     printf("%s\n", rl_library_version);
-
-     char *line;
-
-     initialize_readline();
-
-     while (done == 0) {
-	  line = readline("> ");
-
-	  if (!line)
-	       break;
-
-	  if (is_terminator(line)) {
-	       // should write history to '.history'
-	       write_history(".history");
-	       break;
-	  }
-
-	  if (*line) {
-	       add_history(line);
-	  }
-
-	  free(line);
-     }
-     return 0;
-}
-
-/* get_readline_line: read a line of text from readline; return line length */
+/* get_readline_line: read a line of text using readline; return line length */
 unsigned long get_readline_line(void) {
-     // Using this to check I'm not defaulting back to libedit
-     // printf("%s\n", rl_library_version);
-     char *line;
-
      initialize_readline();
 
-     line = readline(NULL);
-     // printf("%lu", strlen(line));
+     char *line = readline(NULL);
      unsigned long length = strlen(line);
      REALLOC(ibuf, ibufsz, length + 2, ERR);
      memcpy(ibuf, line, length);
@@ -132,11 +98,11 @@ char *command_generator(const char *text, int state) {
      return NULL;
 }
 
-bool is_terminator(char *line) {
+bool is_terminator(const char *line) {
      return ((strlen(line) == 1) && line[0] == '.');
 }
 
-void update_document(char *cur_line, int cursor_offset) {
+void update_document(const char *cur_line, int cursor_offset) {
      char *scratch_buf = get_temp_scratch_buffer();
      doc.text = add_readline_line(scratch_buf, cur_line);
      doc.line = current_addr;
@@ -149,9 +115,8 @@ void update_document(char *cur_line, int cursor_offset) {
 char *get_temp_scratch_buffer(void) {
      char *s = NULL;
      char *buffer = NULL;
-     int buf_length = 0;
+     size_t buf_length = 0;
      int buf_size = 0;
-     int diff = -1;
      size_t growth = 0;
 
      line_t *bp = get_addressed_line_node(1);
