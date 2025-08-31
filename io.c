@@ -63,16 +63,8 @@ read_file(char *fn, int n)
 	  seterrmsg("cannot close input file");
 	  return ERR;
      }
-     if (!scripted) {
-	  // NOTE will add logic here to determine the language in the future.
-	  start_server(ser.to_server_fd, ser.to_client_fd);
-	  initialize_document(&doc, fn);
-
-	  initialize_lsp(&ser, doc.uri);
-	  document_open(&doc, ser.to_server_fd);
-
+     if (!scripted)
 	  printf("%d\n", size);
-     }
      return current_addr - n;
 }
 

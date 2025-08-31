@@ -234,10 +234,11 @@ cJSON *make_completion_request(const document *d, const server *s);
 cJSON *make_shutdown_request(const server *s);
 char *get_uri(char *path);
 char *read_json_file(const char *path);
-void initialize_document(document *d, char *file_name);
+void make_doc(document *d, char *name);
 int new_version(document *d);
 char *get_temp_scratch_buffer(void);
 completion_response completion(const document *d, const server *s);
+void lsp_notify_file_opened(char *fn);
 
 /* global buffers */
 extern char *ibuf;

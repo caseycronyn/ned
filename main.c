@@ -214,9 +214,12 @@ top:
           if (argc && **argv) {
                if (read_file(*argv, 0) < 0 && !interactive)
                     quit(2);
-               else if (**argv != '!')
-                    strlcpy(old_filename, *argv,
-                       sizeof old_filename);
+               else if (**argv != '!') {
+                    strlcpy(old_filename, *argv, sizeof old_filename);
+		    if (interactive) {
+			 lsp_notify_file_opened(old_filename);
+		    }
+	       }
           } else if (argc) {
                fputs("?\n", stdout);
                if (**argv == '\0')
@@ -561,6 +564,9 @@ exec_command(void) {
                     return FATAL;
                if (read_file(fnp, 0) < 0)
                     return ERR;
+	       if (interactive) {
+		    lsp_notify_file_opened(fnp);
+	       }
                clear_undo_stack();
                modified = 0;
                u_current_addr = u_addr_last = -1;
@@ -578,6 +584,9 @@ exec_command(void) {
                     seterrmsg("invalid redirection");
                     return ERR;
                }
+	       if (interactive) {
+		    lsp_notify_file_opened(fnp);
+	       }
                GET_COMMAND_SUFFIX();
                puts(strip_escapes(fnp));
                break;
@@ -696,6 +705,9 @@ exec_command(void) {
                }
                GET_COMMAND_SUFFIX();
                gflag = (modified && !scripted && c == 'q') ? EMOD : EOF;
+	       if (gflag == EOF) {
+		    halt(&ser);
+	       }
                break;
           case 'r':
                if (!isspace((unsigned char) *ibufp)) {
@@ -853,6 +865,10 @@ exec_command(void) {
                     modified = 0;
                else if (modified && !scripted && n == 'q')
                     gflag = EMOD;
+	       // only call if interactive and new filename
+	       if (interactive && (doc.file_name == NULL || strcmp(fnp, doc.file_name) != 0)) {
+		    lsp_notify_file_opened(fnp);
+	       }
                break;
           case 'x':
                if (addr_cnt > 0) {

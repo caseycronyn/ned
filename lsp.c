@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdbool.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,7 +23,7 @@ void print_message(const char *json);
 completion_response get_completion_items(const char *response);
 void document_change(const document *d, const int *to_server_fildes);
 void document_open(const document *d, const int *to_serve_fd);
-void initialize_lsp(const server *s, const char *uri);
+void init_request(const server *s, const char *uri);
 cJSON *make_initialize_request(const server *s, const char *uri);
 cJSON *make_initialized_notification(void);
 char *get_init_message(char *init_msg);
@@ -33,17 +34,41 @@ cJSON *make_completion_request(const document *d, const server *s);
 cJSON *make_shutdown_request(const server *s);
 char *get_uri(char *path);
 char *read_json_file(const char *path);
-int trace_fd = -1;
 
-void initialize_document(document *d, char *name) {
+int trace_fd = -1;
+bool lsp_started = false;
+
+extern int scripted;
+
+// start the lsp and initialise the document, sending the basic messages. Used to start, and to change file.
+void lsp_notify_file_opened(char *fn) {
+     if (lsp_started) {
+	  document_close(ser.to_server_fd, doc.uri);
+     }
+     make_doc(&doc, fn);
+     if (!lsp_started) {
+	  start_server(ser.to_server_fd, ser.to_client_fd);
+	  init_request(&ser, doc.uri);
+	  lsp_started = true;
+     }
+     document_open(&doc, ser.to_server_fd);
+}
+
+
+// updates the document struct with up to date information
+void make_doc(document *d, char *name) {
      d->file_name = name;
      init_file(name);
 
      char *path = realpath(name, NULL);
-     assert(path);
+     if (!path) {
+	  return;
+     }
 
      d->uri = get_uri(path);
-     assert(d->uri);
+     if (!d->uri) {
+	  return;
+     }
 
      // NOTE will change when new languages are added
      d->language = "c";
@@ -95,6 +120,7 @@ void trace_write(char *dir, char *headers, char *body, size_t body_len) {
 }
 
 void halt(const server *s) {
+     document_close(ser.to_server_fd, doc.uri);
      cJSON *req_shutdown = make_shutdown_request(s);
      send_message(s->to_server_fd[1], req_shutdown);
      cJSON_Delete(req_shutdown);
@@ -117,9 +143,12 @@ void halt(const server *s) {
 
 void print_message(const char *json) {
      cJSON *root = cJSON_Parse(json);
-     assert(root);
+     if (!root) {
+	  return;
+     }
      char *pretty = cJSON_Print(root);
-     assert(pretty);
+     if (!pretty) {
+	  return;}
      printf("%s\n", pretty);
      free(pretty);
      cJSON_Delete(root);
@@ -128,7 +157,9 @@ void print_message(const char *json) {
 // read file content into doc.text
 void init_file(const char *name) {
      FILE *fp = fopen(name, "r");
-     assert(fp);
+     if (!fp) {
+	  return;
+     }
      fseek(fp, 0, SEEK_END);
      long n = ftell(fp);
      rewind(fp);
@@ -240,7 +271,8 @@ void start_server(int *to_server_fd, int *to_client_fd) {
 
 void send_message(int fildes, const cJSON *obj) {
      char *body = cJSON_PrintUnformatted(obj);
-     assert(body);
+     if (!body) {
+	  return;}
      size_t length = strlen(body);
 
      char header[128];
@@ -254,7 +286,7 @@ void send_message(int fildes, const cJSON *obj) {
      free(body);
 }
 
-void initialize_lsp(const server *s, const char *uri) {
+void init_request(const server *s, const char *uri) {
      cJSON *req_initialize = make_initialize_request(s, uri);
      send_message(s->to_server_fd[1], req_initialize);
      cJSON_Delete(req_initialize);
