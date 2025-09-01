@@ -12,7 +12,6 @@
 #include "ed.h"
 
 void init_file(const char *name);
-void start_server(int *to_server_fd, int *to_client_fd);
 void halt(const server *s);
 void send_message(int fd, const cJSON *msg);
 ssize_t read_content(int fildes, char *buf, size_t n);
@@ -23,7 +22,7 @@ void print_message(const char *json);
 completion_response get_completion_items(const char *response);
 void document_change(const document *d, const int *to_server_fildes);
 void document_open(const document *d, const int *to_serve_fd);
-void init_request(const server *s, const char *uri);
+void init_lsp_messages(const server *s, const char *uri);
 cJSON *make_initialize_request(const server *s, const char *uri);
 cJSON *make_initialized_notification(void);
 char *get_init_message(char *init_msg);
@@ -47,8 +46,8 @@ void lsp_notify_file_opened(char *fn) {
      }
      make_doc(&doc, fn);
      if (!lsp_started) {
-	  start_server(ser.to_server_fd, ser.to_client_fd);
-	  init_request(&ser, doc.uri);
+	  start_server();
+	  init_lsp_messages(&ser, doc.uri);
 	  lsp_started = true;
      }
      document_open(&doc, ser.to_server_fd);
@@ -233,18 +232,18 @@ void document_open(const document *d, const int *to_serve_fd) {
      cJSON_Delete(notif_open);
 }
 
-void start_server(int *to_server_fd, int *to_client_fd) {
+void start_server(void) {
      ser.ID = 1;
-     pipe(to_server_fd);
-     pipe(to_client_fd);
+     pipe(ser.to_server_fd);
+     pipe(ser.to_client_fd);
 
      trace_fd = open(".messages.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
      // child process (server)
      if (!fork()) {
           // set read and write to stdin and stdout
-          dup2(to_server_fd[0], 0);
-          dup2(to_client_fd[1], 1);
+          dup2(ser.to_server_fd[0], 0);
+          dup2(ser.to_client_fd[1], 1);
 
           // send output to log file to avoid clogging up the tty
           int log_fd = open(".clang.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -254,10 +253,10 @@ void start_server(int *to_server_fd, int *to_client_fd) {
           dup2(log_fd, 2);
           close(log_fd);
 
-          close(to_server_fd[0]);
-          close(to_server_fd[1]);
-          close(to_client_fd[0]);
-          close(to_client_fd[1]);
+          close(ser.to_server_fd[0]);
+          close(ser.to_server_fd[1]);
+          close(ser.to_client_fd[0]);
+          close(ser.to_client_fd[1]);
 
           execlp("clangd", "clangd", NULL);
           // should not reach here
@@ -265,8 +264,8 @@ void start_server(int *to_server_fd, int *to_client_fd) {
      }
 
      // parent closes other pipe ends
-     close(to_server_fd[0]);
-     close(to_client_fd[1]);
+     close(ser.to_server_fd[0]);
+     close(ser.to_client_fd[1]);
 }
 
 void send_message(int fildes, const cJSON *obj) {
@@ -286,7 +285,7 @@ void send_message(int fildes, const cJSON *obj) {
      free(body);
 }
 
-void init_request(const server *s, const char *uri) {
+void init_lsp_messages(const server *s, const char *uri) {
      cJSON *req_initialize = make_initialize_request(s, uri);
      send_message(s->to_server_fd[1], req_initialize);
      cJSON_Delete(req_initialize);
@@ -295,7 +294,6 @@ void init_request(const server *s, const char *uri) {
      if (!response) {
           return;
      }
-     // print_message(response);
      free(response);
 
      cJSON *notif_initialized = make_initialized_notification();

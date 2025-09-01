@@ -183,7 +183,6 @@ int write_file(char *, char *, int, int);
 
 unsigned long get_readline_line(void);
 
-// NOTE lsp headers. remove if and when needed
 typedef struct {
      char *file_name;
      char *uri;
@@ -210,9 +209,10 @@ typedef struct {
 extern document doc;
 extern server ser;
 
+// NOTE lsp headers. remove if and when needed
 void init_file(const char *name);
 void update_document(const char *cur_line, int cursor_offset);
-void start_server(int *to_server_fd, int *to_client_fd);
+void start_server(void);
 void halt(const server *s);
 int get_id(server *s);
 void send_message(int fd, const cJSON *msg);
