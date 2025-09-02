@@ -120,6 +120,7 @@ int interactive = 0; /* if set, we are in interactive mode */
 
 server ser;
 document doc;
+completion comp;
 
 volatile sig_atomic_t mutex = 0; /* if set, signals set flags */
 volatile sig_atomic_t sighup = 0; /* if set, sighup received while mutex set */

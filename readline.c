@@ -19,19 +19,16 @@ void free_candidates(void);
 int done;
 extern int newline_added;
 
-char **completion_candidates = NULL;
-int completion_count = 0;
-
 void free_candidates(void) {
-     if (!completion_candidates) {
+     if (!comp.items) {
 	  return;
      }
-     for (int i = 0; i < completion_count; ++i) {
-	  free(completion_candidates[i]);
+     for (int i = 0; i < comp.count; ++i) {
+	  free(comp.items[i]);
      }
-     free(completion_candidates);
-     completion_candidates = NULL;
-     completion_count = 0;
+     free(comp.items);
+     comp.items = NULL;
+     comp.count = 0;
 }
 
 /* get_readline_line: read a line of text using readline; return line length */
@@ -60,19 +57,13 @@ void initialize_readline(void) {
 }
 
 char **ed_completion(const char *text, int start, int end) {
-     // printf("text: %s\n", rl_line_buffer);
-     // printf("cursor position: %d\n", rl_point);
      update_document(rl_line_buffer, rl_point);
      document_change(&doc, ser.to_server_fd);
 
      free_candidates();
-     completion_response response = completion(&doc, &ser);
-     completion_count = response.completion_count;
-     completion_candidates = response.completion_items;
+     comp = complete(&doc, &ser);
 
-     // increase completion limit
      rl_completion_query_items = 1000;
-     // remove default completion functionality (filenames)
      rl_attempted_completion_over = 1;
      return rl_completion_matches(text, command_generator);
 }
@@ -87,8 +78,8 @@ char *command_generator(const char *text, int state) {
 	  len = (int)strlen(text);
      }
 
-     while (list_index < completion_count) {
-	  name = completion_candidates[list_index++];
+     while (list_index < comp.count) {
+	  name = comp.items[list_index++];
 	  if (strncmp(name, text, len) == 0) {
 	       return (strdup(name));
 	  }
@@ -96,6 +87,34 @@ char *command_generator(const char *text, int state) {
 
      // If no names matched, then return NULL.
      return NULL;
+}
+
+// returns a 2d array of completion items from the language server
+completion get_completion_items(const char *response) {
+     cJSON *obj = cJSON_Parse(response);
+
+     cJSON *result = cJSON_GetObjectItem(obj, "result");
+     cJSON *items = cJSON_GetObjectItem(result, "items");
+
+     int arr_length = cJSON_GetArraySize(items);
+     comp.items = malloc(arr_length * sizeof(char *));
+
+     cJSON *iterator = NULL;
+     int i = 0;
+     cJSON_ArrayForEach(iterator, items) {
+          cJSON *textEdit = cJSON_GetObjectItem(iterator, "textEdit");
+          cJSON *newText = cJSON_GetObjectItem(textEdit, "newText");
+
+          char *item = newText->valuestring;
+          int length = strlen(item);
+
+          comp.items[i] = malloc(length + 1);
+          strlcpy(comp.items[i], item, length + 1);
+          i++;
+     }
+     comp.count = i;
+     cJSON_Delete(obj);
+     return comp;
 }
 
 bool is_terminator(const char *line) {
@@ -108,7 +127,6 @@ void update_document(const char *cur_line, int cursor_offset) {
      doc.line = current_addr;
      doc.column = cursor_offset;
      new_version(&doc);
-     // printf("%s", doc.text);
 }
 
 // modified version of display_lines()

@@ -19,7 +19,7 @@ char *read_headers(int fildes);
 long parse_content_length(char *headers);
 void document_close(int to_server_fd[2], const char *uri);
 void print_message(const char *json);
-completion_response get_completion_items(const char *response);
+completion get_completion_items(const char *response);
 void document_change(const document *d, const int *to_server_fildes);
 void document_open(const document *d, const int *to_serve_fd);
 void init_lsp_messages(const server *s, const char *uri);
@@ -33,6 +33,7 @@ cJSON *make_completion_request(const document *d, const server *s);
 cJSON *make_shutdown_request(const server *s);
 char *get_uri(char *path);
 char *read_json_file(const char *path);
+cJSON *make_notif_exit(void);
 
 int trace_fd = -1;
 bool lsp_started = false;
@@ -46,7 +47,7 @@ void lsp_notify_file_opened(char *fn) {
      }
      make_doc(&doc, fn);
      if (!lsp_started) {
-	  start_server();
+	  start_server(&ser);
 	  init_lsp_messages(&ser, doc.uri);
 	  lsp_started = true;
      }
@@ -129,15 +130,18 @@ void halt(const server *s) {
           return;
      }
 
-     // print_message(response);
-
-     cJSON *notif_exit = cJSON_CreateObject();
-     cJSON_AddStringToObject(notif_exit, "jsonrpc", "2.0");
-     cJSON_AddStringToObject(notif_exit, "method", "exit");
+     cJSON *notif_exit = make_notif_exit();
      send_message(s->to_server_fd[1], notif_exit);
      cJSON_Delete(notif_exit);
      close(trace_fd);
      free(response);
+}
+
+cJSON *make_notif_exit(void) {
+     cJSON *notif = cJSON_CreateObject();
+     cJSON_AddStringToObject(notif, "jsonrpc", "2.0");
+     cJSON_AddStringToObject(notif, "method", "exit");
+     return notif;
 }
 
 void print_message(const char *json) {
@@ -177,49 +181,18 @@ void document_close(int to_server_fd[2], const char *uri) {
 }
 
 // returns the completion response
-completion_response completion(const document *d, const server *s) {
+completion complete(const document *d, const server *s) {
      cJSON *req_completion = make_completion_request(d, s);
      send_message(s->to_server_fd[1], req_completion);
      cJSON_Delete(req_completion);
 
      char *response = wait_for_response(s->to_client_fd[0], s->ID);
-     completion_response r = get_completion_items(response);
+     completion r = get_completion_items(response);
      free(response);
      return r;
 }
 
-// returns a 2d array of completion items from the language server
-completion_response get_completion_items(const char *response) {
-     cJSON *obj = cJSON_Parse(response);
-
-     cJSON *result = cJSON_GetObjectItem(obj, "result");
-     cJSON *items = cJSON_GetObjectItem(result, "items");
-
-     completion_response resp;
-     int arr_length = cJSON_GetArraySize(items);
-     resp.completion_items = malloc(arr_length * sizeof(char *));
-
-     cJSON *iterator = NULL;
-     int i = 0;
-     cJSON_ArrayForEach(iterator, items) {
-          cJSON *textEdit = cJSON_GetObjectItem(iterator, "textEdit");
-          cJSON *newText = cJSON_GetObjectItem(textEdit, "newText");
-
-          char *item = newText->valuestring;
-          int length = strlen(item);
-
-          resp.completion_items[i] = malloc(length + 1);
-          strlcpy(resp.completion_items[i], item, length + 1);
-          i++;
-     }
-     resp.completion_count = i;
-     cJSON_Delete(obj);
-     return resp;
-}
-
 void document_change(const document *d, const int *to_server_fildes) {
-     // some change happens here
-     // update_document();
      cJSON *notif_change = make_did_change(d);
      send_message(to_server_fildes[1], notif_change);
      cJSON_Delete(notif_change);
@@ -232,18 +205,17 @@ void document_open(const document *d, const int *to_serve_fd) {
      cJSON_Delete(notif_open);
 }
 
-void start_server(void) {
-     ser.ID = 1;
-     pipe(ser.to_server_fd);
-     pipe(ser.to_client_fd);
-
+void start_server(server *s) {
+     s->ID = 1;
+     pipe(s->to_server_fd);
+     pipe(s->to_client_fd);
      trace_fd = open(".messages.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
      // child process (server)
      if (!fork()) {
           // set read and write to stdin and stdout
-          dup2(ser.to_server_fd[0], 0);
-          dup2(ser.to_client_fd[1], 1);
+          dup2(s->to_server_fd[0], 0);
+          dup2(s->to_client_fd[1], 1);
 
           // send output to log file to avoid clogging up the tty
           int log_fd = open(".clang.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -253,19 +225,18 @@ void start_server(void) {
           dup2(log_fd, 2);
           close(log_fd);
 
-          close(ser.to_server_fd[0]);
-          close(ser.to_server_fd[1]);
-          close(ser.to_client_fd[0]);
-          close(ser.to_client_fd[1]);
+          close(s->to_server_fd[0]);
+          close(s->to_server_fd[1]);
+          close(s->to_client_fd[0]);
+          close(s->to_client_fd[1]);
 
           execlp("clangd", "clangd", NULL);
           // should not reach here
           exit(EXIT_FAILURE);
      }
-
      // parent closes other pipe ends
-     close(ser.to_server_fd[0]);
-     close(ser.to_client_fd[1]);
+     close(s->to_server_fd[0]);
+     close(s->to_client_fd[1]);
 }
 
 void send_message(int fildes, const cJSON *obj) {
@@ -276,10 +247,8 @@ void send_message(int fildes, const cJSON *obj) {
 
      char header[128];
      int header_len = snprintf(header, sizeof(header), "Content-Length: %zu\r\n\r\n", length);
-
      trace_write("-> client", header, body, length);
 
-     // write header then body
      write(fildes, header, header_len);
      write(fildes, body, length);
      free(body);
@@ -313,7 +282,6 @@ char *wait_for_response(int to_client_fd_read, long target_id) {
 	  }
 
 	  long body_len = parse_content_length(headers);
-
 	  body = malloc((size_t)body_len + 1);
 	  if (!body) {
 	       free(headers);
@@ -332,7 +300,6 @@ char *wait_for_response(int to_client_fd_read, long target_id) {
 	  trace_write("<- server", headers, body, (size_t)body_len);
 	  free(headers);
 
-	  // check ID
 	  cJSON *json = cJSON_Parse(body);
 	  cJSON *id = cJSON_GetObjectItem(json, "id");
 	  if (id && id->type == cJSON_Number && id->valuedouble == (double)target_id) {

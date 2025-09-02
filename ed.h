@@ -200,19 +200,19 @@ typedef struct {
 } server;
 
 typedef struct {
-     char ** completion_items;
-     int completion_count;
-     
-} completion_response;
+     char ** items;
+     int count;
+} completion;
 
 // structs
 extern document doc;
 extern server ser;
+extern completion comp;
 
 // NOTE lsp headers. remove if and when needed
 void init_file(const char *name);
 void update_document(const char *cur_line, int cursor_offset);
-void start_server(void);
+void start_server(server *s);
 void halt(const server *s);
 int get_id(server *s);
 void send_message(int fd, const cJSON *msg);
@@ -237,7 +237,7 @@ char *read_json_file(const char *path);
 void make_doc(document *d, char *name);
 int new_version(document *d);
 char *get_temp_scratch_buffer(void);
-completion_response completion(const document *d, const server *s);
+completion complete(const document *d, const server *s);
 void lsp_notify_file_opened(char *fn);
 
 /* global buffers */
