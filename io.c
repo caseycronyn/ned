@@ -312,22 +312,25 @@ extern int cols;
 int put_tty_line(char *s, int l, int n, int gflag) {
      int col = 0;
      char *cp;
+     int i = 0;
 
      if (gflag & GNP) {
 	  printf("%d\t", n);
 	  col = 8;
      }
-     for (int i = 0; i < l; i++) {
-	  char c = s[i];
-	  // write ansi escape codes without incrementing col
-	  if ((c == 033) && (s[i + 1] == '[')) {
+     // write ansi escape codes without incrementing col
+     while (i < l) {
+	  if ((s[i] == 033) && (s[i + 1] == '[')) {
 	       int j = i + 2;
-	       while (j < l)
+	       while ((j < l) && (s[j] < 0100 || s[j] > 0176)) {
 		    j++;
+	       }
 	       fwrite(s + i, 1, (j - i), stdout);
 	       i = j;
 	       continue;
 	  }
+
+	  char c = s[i++];
 	  if ((gflag & GLS) && ++col > cols) {
 	       fputs("\\\n", stdout);
 	       col = 1;
@@ -350,7 +353,6 @@ int put_tty_line(char *s, int l, int n, int gflag) {
 	  } else {
 	       putchar(c);
 	  }
-	  i++;
      }
      if (gflag & GLS) {
 	  putchar('$');
@@ -358,5 +360,3 @@ int put_tty_line(char *s, int l, int n, int gflag) {
      putchar('\n');
      return 0;
 }
-
-
