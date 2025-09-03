@@ -19,7 +19,6 @@ char *read_headers(int fildes);
 long parse_content_length(char *headers);
 void document_close(int to_server_fd[2], const char *uri);
 void print_message(const char *json);
-completion get_completion_items(const char *response);
 void document_change(const document *d, const int *to_server_fildes);
 void document_open(const document *d, const int *to_serve_fd);
 void init_lsp_messages(const server *s, const char *uri);

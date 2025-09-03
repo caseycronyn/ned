@@ -239,6 +239,7 @@ int new_version(document *d);
 char *get_temp_scratch_buffer(void);
 completion complete(const document *d, const server *s);
 void lsp_notify_file_opened(char *fn);
+completion get_completion_items(const char *response);
 
 /* global buffers */
 extern char *ibuf;

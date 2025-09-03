@@ -94,7 +94,7 @@ int bat_print(int from, int to, int gflag);
 
 int l_print(int from, int to, int gflag);
 
-char *make_bat_buffer(line_t *bp, const line_t *ep, const char *s);
+char *make_bat_buffer(void);
 
 sigjmp_buf env;
 
@@ -1250,89 +1250,39 @@ delete_lines(int from, int to) {
      return 0;
 }
 
-/* display_lines: print a range of lines to stdout using bat for syntax highlighting */
-int
-display_lines(int from, int to, int gflag) {
-    if (!from) {
-        seterrmsg("invalid address");
-        return ERR;
-    }
-    // l flag, use put_tty_line
-    if (gflag & GLS) {
-	 return l_print(from, to, gflag);
-    }
-
-    // else call bat_print for p and n
-    return bat_print(from, to, gflag);
-}
-
-int l_print(int from, int to, int gflag) {
-     char *s;
-
-     const line_t *ep = get_addressed_line_node(INC_MOD(to, addr_last));
-     line_t *bp = get_addressed_line_node(from);
-        for (; bp != ep; bp = bp->q_forw) {
-            if ((s = get_sbuf_line(bp)) == NULL)
-                return ERR;
-            if (put_tty_line(s, bp->len, current_addr = from++, gflag) < 0)
-                return ERR;
-        }
-        return 0;
-
-}
-
-int bat_print(int from, int to, int gflag) {
-    line_t *bp = NULL;
-    line_t *ep = NULL;
-    char *s = NULL;
-
-    char *tmp = make_bat_buffer(bp, ep, s);
-
-    char command[512];
-    sprintf(command, "bat --color=always --style=plain --paging=never --language %s --line-range %d:%d %s",
-	    doc.language, from, to, tmp);
-
-    FILE *bat_process = popen(command, "r");
-    if (!bat_process) {
-	 return ERR;
-    }
-
+// prints lines to screen with syntax highlighting using bat
+int display_lines(int from, int to, int gflag) {
     char *line = NULL;
     size_t cap = 0;
     ssize_t nread;
-    int ln = from;
 
-    while ((nread = getline(&line, &cap, bat_process)) != -1) {
-	 // line number + tab
-	 if (gflag & GNP)
-	      fprintf(stdout, "%d\t", ln);
-	 if (fwrite(line, 1, (size_t)nread, stdout) != nread) {
-	      pclose(bat_process);
-	      return ERR;
+    char command[512];
+    char *buf = make_bat_buffer();
+    snprintf(command, sizeof(command),
+	     "bat --color=always --style=plain --paging=never --language %s --line-range %d:%d %s",
+	     doc.language, from, to, buf);
+
+    FILE *bat = popen(command, "r");
+
+    while ((nread = getline(&line, &cap, bat)) != -1) {
+	 if (nread && line[nread - 1] == '\n') {
+	      nread--;
 	 }
-	 current_addr = ln++;
+	 put_tty_line(line, nread, from, gflag);
+	 current_addr = from++;
     }
-    pclose(bat_process);
-    free(tmp);
+
+    free(line);
+    pclose(bat);
+    free(buf);
     return 0;
 }
 
-char *make_bat_buffer(line_t *bp, const line_t *ep, const char *s) {
+char *make_bat_buffer(void) {
      char tmp[] = "/tmp/ed-highlighted.XXXXXX";
-     const int fd = mkstemp(tmp);
-     if (fd == -1) {
-	  return NULL;
-     }
-
-     bp = get_addressed_line_node(1);
-     ep = get_addressed_line_node(INC_MOD(addr_last, addr_last));
-     for (line_t *lp = bp; lp != ep; lp = lp->q_forw) {
-	  if ((s = get_sbuf_line(lp)) == NULL) {
-	       return NULL;
-	  }
-	  write(fd, s, lp->len);
-	  write(fd, "\n", 1);
-     }
+     int fd = mkstemp(tmp);
+     char *scratch = get_temp_scratch_buffer();
+     write(fd, scratch, strlen(scratch));
      return strdup(tmp);
 }
 
