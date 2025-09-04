@@ -1261,7 +1261,6 @@ int display_lines(int from, int to, int gflag) {
     snprintf(command, sizeof(command),
 	     "bat --color=always --style=plain --paging=never --language %s --line-range %d:%d %s",
 	     doc.language, from, to, buf);
-
     FILE *bat = popen(command, "r");
 
     while ((nread = getline(&line, &cap, bat)) != -1) {

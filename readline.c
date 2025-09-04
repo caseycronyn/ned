@@ -9,6 +9,8 @@
 
 #include "ed.h"
 
+#define MAX_COMPLETIONS 20
+
 bool is_terminator(const char *line);
 void initialize_readline(void);
 char *command_generator(const char *, int);
@@ -69,18 +71,24 @@ char **ed_completion(const char *text, int start, int end) {
 }
 
 char *command_generator(const char *text, int state) {
-     static int list_index, len;
+     static int list_index, len, item_count;
      char *name;
 
      // first pass
      if (!state) {
 	  list_index = 0;
 	  len = (int)strlen(text);
+	  item_count = 0;
+     }
+
+     if (item_count >= MAX_COMPLETIONS) {
+	  return NULL;
      }
 
      while (list_index < comp.count) {
 	  name = comp.items[list_index++];
 	  if (strncmp(name, text, len) == 0) {
+	       item_count++;
 	       return (strdup(name));
 	  }
      }
