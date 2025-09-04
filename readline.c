@@ -9,7 +9,7 @@
 
 #include "ed.h"
 
-#define MAX_COMPLETIONS 20
+#define MAX_COMPLETIONS 10
 
 bool is_terminator(const char *line);
 void initialize_readline(void);
@@ -53,6 +53,9 @@ unsigned long get_readline_line(void) {
 void initialize_readline(void) {
      // Allow conditional parsing of the ~/.inputrc file.
      rl_readline_name = "ed";
+
+     // add all marks as boundaries, not just bash punctuation
+     rl_completer_word_break_characters = " \t\n\"\\'`@$><=;|&{(#})][:?.!,/+-%^~*";
 
      // Tell the completer that we want a crack first.
      rl_attempted_completion_function = ed_completion;
