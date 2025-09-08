@@ -33,11 +33,15 @@ cJSON *make_shutdown_request(const server *s);
 char *get_uri(char *path);
 char *read_json_file(const char *path);
 cJSON *make_notif_exit(void);
+char *get_file_extension(char *filename);
+bool set_LSP_flag(char *ext);
 
 int trace_fd = -1;
 bool lsp_started = false;
 
 extern int scripted;
+
+char *supported_languages[] = {"c", NULL};
 
 // start the lsp and initialise the document, sending the basic messages. Used to start, and to change file.
 void lsp_notify_file_opened(char *fn) {
@@ -45,12 +49,34 @@ void lsp_notify_file_opened(char *fn) {
 	  document_close(ser.to_server_fd, doc.uri);
      }
      make_doc(&doc, fn);
-     if (!lsp_started) {
+     if (doc.LSP && !lsp_started) {
 	  start_server(&ser);
 	  init_lsp_messages(&ser, doc.uri);
 	  lsp_started = true;
      }
-     document_open(&doc, ser.to_server_fd);
+     if (doc.LSP) {
+	  document_open(&doc, ser.to_server_fd);
+     }
+}
+
+char *get_file_extension(char *filename) {
+     if (!filename) {
+	 return NULL;  
+     }
+    char *dot = strrchr(filename, '.');
+    if (!dot || dot == filename) {
+	 return NULL;
+    }
+    return dot + 1;
+}
+
+bool set_LSP_flag(char *ext) {
+    for (int i = 0; supported_languages[i] != NULL; i++) {
+	if (strcmp(supported_languages[i], ext) == 0) {
+	     return true;
+	}
+    }
+    return false;
 }
 
 
@@ -72,6 +98,9 @@ void make_doc(document *d, char *name) {
      // NOTE will change when new languages are added
      d->language = "c";
      d->version = 1;
+
+     char *ext = get_file_extension(name);
+     d->LSP = set_LSP_flag(ext); 
 
      free(path);
 }

@@ -34,6 +34,7 @@
 #include <regex.h>
 #include <signal.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include "cJSON.h"
 
 #define ERR		(-2)
@@ -191,6 +192,7 @@ typedef struct {
      char *text;
      long line;
      long column;
+     bool LSP;
 } document;
 
 typedef struct {

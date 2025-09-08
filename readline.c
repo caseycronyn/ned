@@ -57,8 +57,10 @@ void initialize_readline(void) {
      // add all marks as boundaries, not just bash punctuation
      rl_completer_word_break_characters = " \t\n\"\\'`@$><=;|&{(#})][:?.!,/+-%^~*";
 
-     // Tell the completer that we want a crack first.
-     rl_attempted_completion_function = ed_completion;
+     // Tell the completer that we want a crack first if the LSP is running
+     if (doc.LSP) {
+	  rl_attempted_completion_function = ed_completion;
+     }
 }
 
 char **ed_completion(const char *text, int start, int end) {
