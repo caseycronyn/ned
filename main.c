@@ -118,9 +118,9 @@ int modified; /* if set, buffer modified since last write */
 int scripted = 0; /* if set, suppress diagnostics */
 int interactive = 0; /* if set, we are in interactive mode */
 
-server ser;
-document doc;
-completion comp;
+Server ser;
+Document doc;
+Completion comp;
 
 volatile sig_atomic_t mutex = 0; /* if set, signals set flags */
 volatile sig_atomic_t sighup = 0; /* if set, sighup received while mutex set */
@@ -1067,7 +1067,7 @@ get_shell_command(void) {
    single period is read or EOF; return status */
 static int
 append_lines(int n) {
-     unsigned long l;
+     int l;
      char *lp = ibuf;
      char *eot;
      undo_t *up = NULL;
@@ -1087,7 +1087,8 @@ append_lines(int n) {
           } else if (*(lp = ibufp) == '\0')
                return 0;
           else {
-               while (*ibufp++ != '\n');
+               while (*ibufp++ != '\n')
+		    ;
                l = ibufp - lp;
           }
           if (l == 2 && lp[0] == '.' && lp[1] == '\n') {

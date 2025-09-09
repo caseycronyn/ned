@@ -103,7 +103,7 @@ char *command_generator(const char *text, int state) {
 }
 
 // returns a 2d array of completion items from the language server
-completion get_completion_items(const char *response) {
+Completion get_completion_items(const char *response) {
      cJSON *obj = cJSON_Parse(response);
 
      cJSON *result = cJSON_GetObjectItem(obj, "result");

@@ -193,55 +193,55 @@ typedef struct {
      long line;
      long column;
      bool LSP;
-} document;
+} Document;
 
 typedef struct {
-     long ID;
+     long id;
      int to_server_fd[2];
      int to_client_fd[2];
-} server;
+} Server;
 
 typedef struct {
      char ** items;
      int count;
-} completion;
+} Completion;
 
 // structs
-extern document doc;
-extern server ser;
-extern completion comp;
+extern Document doc;
+extern Server ser;
+extern Completion comp;
 
 // NOTE lsp headers. remove if and when needed
 void init_file(const char *name);
 void update_document(const char *cur_line, int cursor_offset);
-void start_server(server *s);
-void halt(const server *s);
-int get_id(server *s);
+void start_server(Server *s);
+void halt(const Server *s);
+int get_id(Server *s);
 void send_message(int fd, const cJSON *msg);
 char *wait_for_response(int to_client_fd_read, long target_id);
 char *read_headers(int fildes);
 long parse_content_length(char *headers);
 void document_close(int to_server_fd[2], const char *uri);
 void print_message(const char *json);
-void document_change(const document *d, const int *to_server_fildes);
-void document_open(const document *d, const int *to_serve_fd);
-void initialize_lsp(const server *s, const char *uri);
-cJSON *make_initialize_request(const server *s, const char *uri);
+void document_change(const Document *d, const int *to_server_fildes);
+void document_open(const Document *d, const int *to_serve_fd);
+void initialize_lsp(const Server *s, const char *uri);
+cJSON *make_initialize_request(const Server *s, const char *uri);
 cJSON *make_initialized_notification(void);
 char *get_init_message(char *init_msg);
-cJSON *make_did_open(const document *d);
-cJSON *make_did_change(const document *d);
+cJSON *make_did_open(const Document *d);
+cJSON *make_did_change(const Document *d);
 cJSON *make_did_close(const char *uri);
-cJSON *make_completion_request(const document *d, const server *s);
-cJSON *make_shutdown_request(const server *s);
+cJSON *make_completion_request(const Document *d, const Server *s);
+cJSON *make_shutdown_request(const Server *s);
 char *get_uri(char *path);
 char *read_json_file(const char *path);
-void make_doc(document *d, char *name);
-int new_version(document *d);
+void make_doc(Document *d, char *name);
+int new_version(Document *d);
 char *get_temp_scratch_buffer(void);
-completion complete(const document *d, const server *s);
+Completion complete(const Document *d, const Server *s);
 void lsp_notify_file_opened(char *fn);
-completion get_completion_items(const char *response);
+Completion get_completion_items(const char *response);
 
 /* global buffers */
 extern char *ibuf;
