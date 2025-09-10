@@ -308,56 +308,44 @@ get_tty_line(void)
 extern int rows;
 extern int cols;
 
-// added ansi escape handling
-int put_tty_line(char *s, int l, int n, int gflag) {
-     int col = 0;
-     char *cp;
-     int i = 0;
+/* put_tty_line: print text to stdout */
+int
+put_tty_line(char *s, int l, int n, int gflag)
+{
+	int col = 0;
+	char *cp;
 
-     if (gflag & GNP) {
-	  printf("%d\t", n);
-	  col = 8;
-     }
-     // write ansi escape codes without incrementing col
-     while (i < l) {
-	  if ((s[i] == 033) && (s[i + 1] == '[')) {
-	       int j = i + 2;
-	       while ((j < l) && (s[j] < 0100 || s[j] > 0176)) {
-		    j++;
-	       }
-	       fwrite(s + i, 1, (j - i), stdout);
-	       i = j;
-	       continue;
-	  }
+	if (gflag & GNP) {
+		printf("%d\t", n);
+		col = 8;
+	}
+	for (; l--; s++) {
+		if ((gflag & GLS) && ++col > cols) {
+			fputs("\\\n", stdout);
+			col = 1;
+		}
+		if (gflag & GLS) {
+			if (31 < *s && *s < 127 && *s != '\\' && *s != '$')
+				putchar(*s);
+			else {
+				putchar('\\');
+				col++;
+				if (*s && (cp = strchr(ESCAPES, *s)) != NULL)
+					putchar(ESCCHARS[cp - ESCAPES]);
+				else {
+					putchar((((unsigned char) *s & 0300) >> 6) + '0');
+					putchar((((unsigned char) *s & 070) >> 3) + '0');
+					putchar(((unsigned char) *s & 07) + '0');
+					col += 2;
+				}
+			}
 
-	  char c = s[i++];
-	  if ((gflag & GLS) && ++col > cols) {
-	       fputs("\\\n", stdout);
-	       col = 1;
-	  }
-	  if (gflag & GLS) {
-	       if (31 < c && c < 127 && c != '\\' && c != '$') {
-		    putchar(c);
-	       } else {
-		    putchar('\\');
-		    col++;
-		    if (c && (cp = strchr(ESCAPES, c)) != NULL)
-			 putchar(ESCCHARS[cp - ESCAPES]);
-		    else {
-			 putchar(((c & 0300) >> 6) + '0');
-			 putchar(((c & 070) >> 3) + '0');
-			 putchar((c & 07) + '0');
-			 col += 2;
-		    }
-	       }
-	  } else {
-	       putchar(c);
-	  }
-     }
-     if (gflag & GLS) {
-	  putchar('$');
-     }
-     putchar('\n');
-     return 0;
+		} else
+			putchar(*s);
+	}
+	if (gflag & GLS)
+		putchar('$');
+	putchar('\n');
+	return 0;
 }
 
