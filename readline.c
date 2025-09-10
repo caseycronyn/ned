@@ -58,7 +58,7 @@ void initialize_readline(void) {
      rl_completer_word_break_characters = " \t\n\"\\'`@$><=;|&{(#})][:?.!,/+-%^~*";
 
      // Tell the completer that we want a crack first if the LSP is running
-     if (doc.LSP) {
+     if (doc.lsp) {
 	  rl_attempted_completion_function = ed_completion;
      }
 }

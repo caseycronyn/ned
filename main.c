@@ -706,7 +706,7 @@ exec_command(void) {
                }
                GET_COMMAND_SUFFIX();
                gflag = (modified && !scripted && c == 'q') ? EMOD : EOF;
-	       if (gflag == EOF && doc.LSP) {
+	       if (gflag == EOF && doc.lsp) {
 		    halt(&ser);
 	       }
                break;

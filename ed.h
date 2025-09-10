@@ -192,7 +192,7 @@ typedef struct {
      char *text;
      long line;
      long column;
-     bool LSP;
+     bool lsp;
 } Document;
 
 typedef struct {
