@@ -1,21 +1,15 @@
 # ned
-*ned* is a **modernised** version of *ed*.
+*ned* is a **modernised** version of *ed(1)*.
+
 ![showcase](https://github.com/caseycronyn/assets/blob/4b74765b14f825963c3f22434856c01d11656174/ned-showcase.gif)
 
-It adds contemporary code features to *ed(1)*, the *standard* **UNIX** text editor written in 1969. These include:
+It adds contemporary code features to the *standard* **UNIX** text editor. These include:
 
-- **Syntax Highlighting** — semantically aware using *bat*
-- **Code Completion** for *C* — powered by an *LSP* client using *clangd*
-- **GNU Readline** integration — easier buffer editing
+- **Syntax Highlighting** — using *bat*
+- **Code Completion** — powered by an *LSP* client using *clangd* for *C*
+- **GNU Readline integration** — command-line editing of input lines
 
-It is a fork of [oed](https://github.com/ibara/oed), a portable OpenBSD implementation, written in *C*.
-
-## Table of Contents
-- [Installation](#Installation)
-  - [Dependencies](#Dependencies)
-- [Usage](#Usage)
-  - [Configuration](#Configuration)
-- [About](#About)
+It is a fork of [oed](https://github.com/ibara/oed), written in *C*.
 
 ***
 
