@@ -11,6 +11,14 @@ It adds contemporary code features to the [standard **UNIX** text editor](https:
 
 It is a fork of [oed](https://github.com/ibara/oed), written in *C*.
 
+## Table of Contents
+- [Installation](#Installation)
+  - [Dependencies](#Dependencies)
+- [Usage](#Usage)
+- [Configuration](#Configuration)
+- [About](#About)
+- [Other ed's](#Other-ed's)
+
 ***
 
 ## Installation
@@ -27,12 +35,12 @@ It is a fork of [oed](https://github.com/ibara/oed), written in *C*.
 - [clangd](https://github.com/clangd/clangd)
 - [GNU Readline](https://ftp.gnu.org/gnu/readline/)
 
-### Usage
+## Usage
 - Syntax highlighting will happen automatically with any buffer printing commands.
 - Code completion is initiated with TAB. It will show options if there are any.
 - Readline integration is built into 'insert mode', initiated with `i` or `a`.
 
-### Configuration
+## Configuration
 Both code completion and readline bindings (ie automatic completion, completion key, emacs or vi, parentheses highlighting) can be modified through *Readline's* [config file](https://www.gnu.org/software/bash/manual/html_node/Readline-Init-File.html) (`.inputrc` in the home directory). `ned` will respect these preferences.
 
 ## About
