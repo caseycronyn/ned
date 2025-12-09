@@ -1,51 +1,45 @@
 # ned
-*ned* is a **modernised** `ed(1)` fork.
-
-It includes:
-
-- LSP powered code completion
-- semantically aware syntax highlighting
-- GNU Readline integration
-
-(sections)
-
-## Getting started
+*ned* is a **modernised** version of *ed*.
 ![showcase](https://github.com/caseycronyn/assets/blob/4b74765b14f825963c3f22434856c01d11656174/ned-showcase.gif)
 
-## 
-## OpenED
-Portable OpenBSD `ed(1)`.
-### Why?
-Because all operating systems deserve a good editor.
-### Supported systems
-OpenED should run on any minimally `POSIX` operating system.
-Pull requests are much appreciated to support more operating systems.
-### Supported compilers
-OpenED is known to build with the following C compilers:
-* clang (https://llvm.org/)
-* gcc (https://gcc.gnu.org/)
-* pcc (http://pcc.ludd.ltu.se/)
-* cparser (https://pp.ipd.kit.edu/firm/)
-* lacc (https://github.com/larmel/lacc)
-* Tiny C Compiler (https://bellard.org/tcc/)
-* CompCert (https://compcert.org/)
+It adds contemporary code features to *ed(1)*, the *standard* **UNIX** text editor written in 1969. These include:
 
-Building with a compiler not listed here? Add it and send a pull request!
+- **Syntax Highlighting** — semantically aware using *bat*
+- **Code Completion** for *C* — powered by an *LSP* client using *clangd*
+- **GNU Readline** integration — easier buffer editing
+
+It is a fork of [oed](https://github.com/ibara/oed), a portable OpenBSD implementation, written in *C*.
+
+## Table of Contents
+- [Installation](#Installation)
+  - [Dependencies](#Dependencies)
+- [Usage](#Usage)
+  - [Configuration](#Configuration)
+- [About](#About)
+
+***
+
+## Installation
+
+1. Install the [dependencies](#Dependencies).
+2. Clone *ned*.
+3. Follow the installation instructions for [oed](https://github.com/ibara/oed).
+4. Link *Readline* into the program ([here](https://github.com/caseycronyn/assets/blob/7fc531da53f4c76e683045dc110957eae03c6100/Makefile)
+ is how I did it).
+
 ### Dependencies
-Any C89 compiler should be able to compile OpenED. Please see the
-list of C compilers above for a list of known working compilers.
 
-A `configure` script that produces a `POSIX` `Makefile` is provided to
-ease building and installation and can be run by:
-```
-$ ./configure
-$ make && sudo make install
-```
-### License
-Files originating with OpenED are BSD licensed.
-Portability files are ISC licensed; see individual file headers
-for details.
-### Get a tarball
-Tarballs can be found in the Releases tab.
+- [bat](https://github.com/sharkdp/bat)
+- [clangd](https://github.com/clangd/clangd)
+- [GNU Readline](https://ftp.gnu.org/gnu/readline/)
 
-The latest release is oed-7.4.
+### Usage
+- Syntax highlighting will happen automatically with any buffer printing commands.
+- Code completion is initiated with TAB. It will show options if there are any.
+- Readline integration is built into 'insert mode', initiated with `i` or `a`.
+
+### Configuration
+Both code completion and readline bindings (ie automatic completion, completion key, emacs or vi, parentheses highlighting) can be modified through *Readline's* [config file](https://www.gnu.org/software/bash/manual/html_node/Readline-Init-File.html) (`.inputrc` in the home directory). `ned` will respect these preferences.
+
+## About
+*ned* is an experiment in retrofitting technologies belonging to disparate eras. It adds a set of modern code editing features to ed in a way that hasn’t broken it. These features can easily be ignored and the tool used as it was designed, if you can bear the angry fruit salad. An *ed* developer could unwittingly become a *ned* developer if their sysadmin has set an alias for `ed=ned`.
