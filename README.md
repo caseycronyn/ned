@@ -3,7 +3,7 @@
 
 ![showcase](https://github.com/caseycronyn/assets/blob/4b74765b14f825963c3f22434856c01d11656174/ned-showcase.gif)
 
-It adds contemporary code features to the *standard* **UNIX** text editor. These include:
+It adds contemporary code features to the [standard **UNIX** text editor](https://www.gnu.org/fun/jokes/ed-msg.en.html). These include:
 
 - **Syntax Highlighting** — using *bat*
 - **Code Completion** — powered by an *LSP* client using *clangd* for *C*
