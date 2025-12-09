@@ -44,7 +44,9 @@ It is a fork of [oed](https://github.com/ibara/oed), written in *C*.
 Both code completion and readline bindings (ie automatic completion, completion key, emacs or vi, parentheses highlighting) can be modified through *Readline's* [config file](https://www.gnu.org/software/bash/manual/html_node/Readline-Init-File.html) (`.inputrc` in the home directory). `ned` will respect these preferences.
 
 ## About
-*ned* is an experiment in retrofitting technologies belonging to disparate eras. It adds a set of modern code editing features to ed in a way that hasn’t broken it. These features can easily be ignored and the tool used as it was designed, if you can bear the angry fruit salad. An *ed* developer could unwittingly become a *ned* developer if their sysadmin has set an alias for `ed=ned`.
+*ned* is an experiment in retrofitting technologies belonging to disparate eras. It adds a set of modern code editing features to ed in a way that hasn’t broken it. 
+
+These features can easily be ignored and the tool used as it was designed, if you can bear the angry fruit salad. An *ed* developer could unwittingly become a *ned* developer if their sysadmin has set an alias for `ed=ned`, as was the intention of this project.
 
 ## Other ed's
 - [edbrowse](https://github.com/edbrowse/edbrowse) extends ed as a web browser and mail client, originally written for blind users.
