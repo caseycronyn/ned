@@ -39,6 +39,6 @@ Both code completion and readline bindings (ie automatic completion, completion 
 *ned* is an experiment in retrofitting technologies belonging to disparate eras. It adds a set of modern code editing features to ed in a way that hasn’t broken it. These features can easily be ignored and the tool used as it was designed, if you can bear the angry fruit salad. An *ed* developer could unwittingly become a *ned* developer if their sysadmin has set an alias for `ed=ned`.
 
 ## Other ed's
-- [Edbrowse](https://github.com/edbrowse/edbrowse) extends ed as a web browser and mail client, originally written for blind users.
+- [edbrowse](https://github.com/edbrowse/edbrowse) extends ed as a web browser and mail client, originally written for blind users.
 - [hired](https://github.com/sidju/hired) is a Rust rewrite, adding extra commands and syntax highlighting and an ed-like interface.
 - [Ed with Syntax Highlighting](https://github.com/Mathias-Fuchs/ed-with-syntax-highlighting) is written in C and C++, adding syntax highlighting.
